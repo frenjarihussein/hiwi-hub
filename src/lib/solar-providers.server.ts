@@ -126,20 +126,20 @@ async function sungrowPlants(env: ReturnType<typeof sungrowEnvironment>, token: 
   }
   throw new Error('Station list exceeded supported pagination; no partial import was saved.');
 }
-export async function discoverStations(provider: 'sungrow' | 'sma', sgEnv?: ReturnType<typeof sungrowEnvironment>) {
+export async function discoverStations(provider: 'sungrow' | 'sma', sgEnv?: ReturnType<typeof sungrowEnvironment>, smaEnv?: Sma) {
   if (provider === 'sungrow') {
     const env = sgEnv ?? sungrowEnvironment();
     const login = await call(env, 'login', { user_account: env.user, user_password: env.pass });
     if (!login?.token) throw new Error('Sungrow login failed');
     return (await sungrowPlants(env, login.token)).map(p => ({ plant_id: String(p.ps_id), name: String(p.ps_name || p.ps_id), capacity_kwp: sgCap(p), plant_kind: plantKindFromType(p.ps_type) }));
   }
-  const id = process.env['SMA_CLIENT_ID'], secret = process.env['SMA_CLIENT_SECRET'];
+  const id = smaEnv?.id || process.env['SMA_CLIENT_ID'], secret = smaEnv?.secret || process.env['SMA_CLIENT_SECRET'];
   if (!id || !secret) throw new Error('SMA credentials and plant-owner consent are required.');
-  const auth = await fetch(process.env['SMA_AUTH_URL'] || 'https://auth.smaapis.de/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret }) });
+  const auth = await fetch(smaEnv?.auth || process.env['SMA_AUTH_URL'] || 'https://auth.smaapis.de/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret }) });
   if (!auth.ok) throw new Error(`SMA authorization failed [${auth.status}]`);
   const { access_token } = await auth.json() as { access_token?: string };
   if (!access_token) throw new Error('SMA token unavailable');
-  const response = await fetch(`${process.env['SMA_BASE_URL'] || 'https://monitoring.smaapis.de'}/monitoring/v1/plants`, { headers: { authorization: `Bearer ${access_token}` } });
+  const response = await fetch(`${smaEnv?.base || process.env['SMA_BASE_URL'] || 'https://monitoring.smaapis.de'}/monitoring/v1/plants`, { headers: { authorization: `Bearer ${access_token}` } });
   if (!response.ok) throw new Error(`SMA station list failed [${response.status}]`);
   const result = await response.json() as { plants?: { plantId?: string; id?: string; name?: string; plantName?: string; peakPower?: number }[] };
   if (!Array.isArray(result.plants)) throw new Error('Invalid SMA station list');

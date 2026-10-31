@@ -17,15 +17,13 @@ export const syncSolarMonitor = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error || !row) throw new Error("لم يتم ربط هذا المشروع بإنفرتر بعد");
     const cap = Number(row.capacity_kwp) || 10;
-    const { sungrowEnvFor } = await import("./integrations.server");
+    const { sungrowEnvFor, smaEnvFor } = await import("./integrations.server");
     const env: { appkey?: string; secret?: string; user?: string; pass?: string; base: string } = await sungrowEnvFor(row.tenant_id as string).catch(() => ({ base: "https://gateway.isolarcloud.com.hk" }));
     const provider = (row.provider as string) || "sungrow";
-    const sma = {
-      id: process.env["SMA_CLIENT_ID"],
-      secret: process.env["SMA_CLIENT_SECRET"],
-      base: process.env["SMA_BASE_URL"] || "https://monitoring.smaapis.de",
-      auth: process.env["SMA_AUTH_URL"] || "https://auth.smaapis.de/oauth2/token",
-    };
+    const sma: { id?: string; secret?: string; base: string; auth: string } = await smaEnvFor(row.tenant_id as string).catch(() => ({
+      base: "https://monitoring.smaapis.de",
+      auth: "https://auth.smaapis.de/oauth2/token",
+    }));
     const extras = (Array.isArray(row.extra_units) ? row.extra_units : []) as unknown as SolarUnit[];
     const units = [{ provider, plant_id: row.plant_id as string | null, capacity_kwp: cap }, ...extras.map((u) => ({ provider: u.provider, plant_id: u.plant_id, capacity_kwp: Number(u.capacity_kwp) || 0 }))];
     const ok = (p: string) => (p === "sma" ? Boolean(sma.id && sma.secret) : p === "sungrow" && Boolean(env.appkey && env.secret && env.user && env.pass));

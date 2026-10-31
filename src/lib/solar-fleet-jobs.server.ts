@@ -20,11 +20,11 @@ export async function syncFleetJob() {
       for (const monitor of monitors) {
         try {
           if (!monitor.plant_id) continue;
-          const smaEnv = () => { const id = process.env['SMA_CLIENT_ID'], secret = process.env['SMA_CLIENT_SECRET']; if (!id || !secret) throw new Error('SMA unavailable'); return { id,secret,base:process.env['SMA_BASE_URL'] || 'https://monitoring.smaapis.de',auth:process.env['SMA_AUTH_URL'] || 'https://auth.smaapis.de/oauth2/token' }; };
+          const smaEnv = () => import('./integrations.server').then(m => m.smaEnvFor(account.tenant_id));
           const units = [{ provider: account.provider as string, plant_id: monitor.plant_id as string, capacity_kwp: Number(monitor.capacity_kwp) }, ...((Array.isArray(monitor.extra_units) ? monitor.extra_units : []) as unknown as SolarUnit[]).map((u) => ({ provider: u.provider as string, plant_id: u.plant_id, capacity_kwp: Number(u.capacity_kwp) || 0 }))];
           // All inverters of the project must answer; partial totals would look like a production drop.
           const readings = [];
-          for (let i = 0; i < units.length; i += 6) readings.push(...await Promise.all(units.slice(i,i+6).map(async (u) => u.provider === 'sungrow' ? fetchSungrow(await sgEnv(), u.plant_id, u.capacity_kwp) : fetchSma(smaEnv(), u.plant_id, u.capacity_kwp))));
+          for (let i = 0; i < units.length; i += 6) readings.push(...await Promise.all(units.slice(i,i+6).map(async (u) => u.provider === 'sungrow' ? fetchSungrow(await sgEnv(), u.plant_id, u.capacity_kwp) : fetchSma(await smaEnv(), u.plant_id, u.capacity_kwp))));
           const reading = combineReadings(readings);
           if (!reading) throw new Error('No readings');
           if (!matchingReading(reading,false,account.provider)) throw new Error('Invalid reading');

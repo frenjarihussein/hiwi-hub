@@ -3,7 +3,46 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { PlugZap, Save, Trash2 } from "lucide-react";
-import { getIntegrationSettings, saveSungrowSettings, testSungrowSettings, saveTelegramToken } from "@/lib/solar-fleet.functions";
+import { getIntegrationSettings, saveSungrowSettings, testSungrowSettings, saveTelegramToken, saveSmaSettings, testSmaSettings } from "@/lib/solar-fleet.functions";
+
+/** Company SMA (Sunny Portal / ennexOS) API credentials, mirroring the Sungrow card. */
+function SmaSettings() {
+  const qc = useQueryClient();
+  const get = useServerFn(getIntegrationSettings), save = useServerFn(saveSmaSettings), test = useServerFn(testSmaSettings);
+  const q = useQuery({ queryKey: ["integration-settings"], queryFn: () => get() });
+  const [f, setF] = useState({ client_id: "", secret: "", base: "", auth: "" });
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (q.data) setF((o) => ({ ...o, client_id: q.data.sma.client_id, base: q.data.sma.base, auth: q.data.sma.auth })); }, [q.data]);
+  const s = q.data?.sma;
+  async function act(fn: () => Promise<void>) { setBusy(true); try { await fn(); } catch (e) { toast.error(e instanceof Error ? e.message : "تعذر التنفيذ"); } finally { setBusy(false); } }
+  const field = (k: keyof typeof f, label: string, type = "text", ph = "") => (
+    <label className="space-y-1 text-sm"><span>{label}</span><Input type={type} autoComplete={type === "password" ? "new-password" : "off"} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label>
+  );
+  return (
+    <section className="space-y-3 rounded-lg border p-4">
+      <h3 className="font-semibold">ربط SMA (Sunny Portal / ennexOS) لهذه الشركة</h3>
+      <div className="rounded-md bg-muted p-3 text-xs space-y-1">
+        <div>الحالة الحالية: <b>{s?.own ? "مربوط بحساب SMA الخاص بالشركة" : "غير مربوط — يُستخدم حساب المنصة الافتراضي إن وُجد"}</b></div>
+        {s?.client_id && <div>Client ID: {s.client_id}</div>}
+        <div>خادم المراقبة: {s?.base || "https://monitoring.smaapis.de"}</div>
+        <div>خادم المصادقة: {s?.auth || "https://auth.smaapis.de/oauth2/token"}</div>
+        <div>Client Secret: {s?.hasSecret ? "محفوظ 🔒" : "غير محفوظ"}</div>
+      </div>
+      <p className="text-xs text-muted-foreground">احصل على Client ID و Client Secret من بوابة مطوري SMA، ويجب موافقة مالك المحطة على الوصول. بعد الحفظ استورد المحطات من تبويب المحطات.</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {field("client_id", "Client ID")}
+        {field("secret", "Client Secret", "password", s?.hasSecret ? "محفوظ — اتركه فارغاً للإبقاء عليه" : "")}
+        {field("base", "خادم المراقبة (اختياري)", "url", "https://monitoring.smaapis.de")}
+        {field("auth", "خادم المصادقة (اختياري)", "url", "https://auth.smaapis.de/oauth2/token")}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={busy} onClick={() => void act(async () => { await save({ data: { ...f, secret: f.secret || undefined } }); setF({ ...f, secret: "" }); toast.success("تم حفظ إعدادات SMA"); void qc.invalidateQueries({ queryKey: ["integration-settings"] }); })}><Save className="size-4" />حفظ</Button>
+        <Button variant="outline" disabled={busy} onClick={() => void act(async () => { const r = await test(); if (r.ok) toast.success(`الاتصال ناجح (${r.own ? "مفاتيح الشركة" : "حساب المنصة"}) — ${r.stations} محطة`); else toast.error(`فشل الاتصال: ${r.message}`); })}><PlugZap className="size-4" />فحص الاتصال</Button>
+        <Button variant="ghost" disabled={busy} onClick={() => void act(async () => { if (!window.confirm("حذف مفاتيح SMA الخاصة بالشركة؟")) return; await save({ data: { client_id: "", base: "", auth: "", clear: true } }); setF({ client_id: "", secret: "", base: "", auth: "" }); void qc.invalidateQueries({ queryKey: ["integration-settings"] }); })}><Trash2 className="size-4" />مسح</Button>
+      </div>
+    </section>
+  );
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientTelegramCard } from "./ClientTelegramCard";
@@ -47,6 +86,7 @@ export function IntegrationSettings() {
           <Button variant="ghost" disabled={busy} onClick={() => void act(async () => { if (!window.confirm("حذف مفاتيح سن غرو الخاصة بالشركة؟")) return; await save({ data: { appkey: "", user: "", base: "", clear: true } }); setF({ appkey: "", secret: "", user: "", pass: "", base: "" }); void qc.invalidateQueries({ queryKey: ["integration-settings"] }); })}><Trash2 className="size-4" />مسح</Button>
         </div>
       </section>
+      <SmaSettings />
       <section className="space-y-3 rounded-lg border p-4">
         <h3 className="font-semibold">بوت التلغرام</h3>
         {q.data && (<>
