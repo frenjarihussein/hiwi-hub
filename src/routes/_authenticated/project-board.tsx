@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { CalendarDays, CheckCircle2, HardHat, LayoutGrid, Palette, PauseCircle, Pencil, Plus, Search, Timer, Trash2, Users } from "lucide-react";
 import { EditProjectDialog } from "@/components/solar/EditProjectDialog";
+import { SYRIA_GOVERNORATES } from "@/lib/syria-governorates";
 import { appDatabase as supabase } from "@/lib/app-database-client";
 import { db } from "@/lib/db";
 import { can, useMe } from "@/lib/session";
@@ -160,6 +161,13 @@ function Projects() {
     const r = await (db.from('project_snags') as any).select('project_id,status').eq('tenant_id',me!.tenantId).neq('status','closed');
     return (r.data ?? []) as { project_id: string }[];
   } });
+  const govs = useQuery({ queryKey:['projects','board-govs',me?.tenantId],enabled:!!me?.tenantId,queryFn:async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await (db.from('solar_projects') as any).select('project_id,survey').eq('tenant_id',me!.tenantId);
+    return Object.fromEntries(((r.data ?? []) as { project_id: string; survey: { governorate?: string } | null }[]).map(x => [x.project_id, x.survey?.governorate ?? ''])) as Record<string, string>;
+  } });
+  const govOf = (id: string) => govs.data?.[id] || '';
+  const [gov, setGov] = useState('');
   const [kind, setKind] = useState<'all' | 'ess' | 'ongrid'>('all');
   const [health, setHealth] = useState<'all' | Health>('all');
   const kindOf = (id: string) => { const m = monitoring.data?.find(x => x.project_id === id); if (!m) return null; return m.solar_fleet_stations?.plant_kind ?? (matchingReading(m.last_data,m.demo,m.provider)?.extra?.plant_kind ?? null); };
