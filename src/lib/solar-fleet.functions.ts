@@ -282,7 +282,7 @@ export const testSungrowSettings = createServerFn({ method: 'POST' }).middleware
     return { ok: true, own: env.own, stations: stations.length, message: '' };
   } catch (e) { return { ok: false, own: false, stations: 0, message: e instanceof Error ? e.message : 'فشل الاتصال' }; }
 });
-/** Platform bot token (one shared bot): only the platform owner can change it; webhook is re-registered on save. */
+/** Company bot token: each company admin links its own bot (or clears it to use the platform bot). */
 export const saveTelegramToken = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
   .inputValidator((d: unknown) => z.object({ token: z.string().trim().regex(/^\d+:[\w-]{20,}$/, 'رمز البوت غير صحيح').or(z.literal('')), origin: z.string().url() }).parse(d))
   .handler(async ({ data, context }) => {
