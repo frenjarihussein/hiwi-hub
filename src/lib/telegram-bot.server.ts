@@ -152,20 +152,21 @@ export async function handleTelegram(request: Request) {
     const listGov = govMatch ? SYRIA_GOVERNORATES[Number(govMatch[1])] : undefined;
     const stMatch = /^s(\d+)_(\d+)$/.exec(action);
     const listSt = stMatch ? STATES[Number(stMatch[1])] : undefined;
-    const kindMatch = /^k(ess|ongrid)(\d*)$/.exec(action);
+    const kindMatch = /^k(ess|ongrid|feed|zero)(\d*)$/.exec(action);
     const listKind = kindMatch?.[1];
     const isList = action.startsWith('list') || !!kindMatch || !!listGov || !!listSt;
     const page = Math.max(0, Number(govMatch ? govMatch[2] : stMatch ? stMatch[2] : kindMatch ? kindMatch[2] : action.startsWith('list') ? action.slice(4) : 0) || 0);
-    const pool = rows.map((r,i) => ({ r, i })).filter(x => (!listKind || kindOf(x.r) === listKind) && (!listGov || govById.get(x.r.id) === listGov) && (!listSt || stateOf(x.r.data, x.r.last_sync) === listSt));
+    const pool = rows.map((r,i) => ({ r, i })).filter(x => (!listKind || (listKind === 'feed' ? gridById.get(x.r.id) === 'feed_in' : listKind === 'zero' ? gridById.get(x.r.id) === 'zero_export' : kindOf(x.r) === listKind)) && (!listGov || govById.get(x.r.id) === listGov) && (!listSt || stateOf(x.r.data, x.r.last_sync) === listSt));
     const prefix = listGov ? `g${govMatch![1]}_` : listSt ? `s${stMatch![1]}_` : listKind ? `k${listKind}` : 'list';
     const keyboard = pool.slice(page*12,page*12+12).map(({ r, i }) => [{ text:`${kindOf(r) === 'ess' ? '🔋 ' : kindOf(r) === 'ongrid' ? '⚡ ' : ''}${r.name}`.slice(0,60),callback_data:`t:${team.id}:p${i}` }]);
     if (page > 0) keyboard.push([{ text:'السابق',callback_data:`t:${team.id}:${prefix}${page-1}` }]);
     if ((page+1)*12 < pool.length) keyboard.push([{ text:'التالي',callback_data:`t:${team.id}:${prefix}${page+1}` }]);
     keyboard.push([{ text:`🔋 بطاريات (${rows.filter(r => kindOf(r) === 'ess').length})`,callback_data:`t:${team.id}:kess` },{ text:`⚡ أون جريد (${rows.filter(r => kindOf(r) === 'ongrid').length})`,callback_data:`t:${team.id}:kongrid` },{ text:'الكل',callback_data:`t:${team.id}:list` }]);
+    keyboard.push([{ text:`⚡ يورّد للشبكة (${rows.filter(r => gridById.get(r.id) === 'feed_in').length})`,callback_data:`t:${team.id}:kfeed` },{ text:`🏭 لا يورّد (${rows.filter(r => gridById.get(r.id) === 'zero_export').length})`,callback_data:`t:${team.id}:kzero` }]);
     keyboard.push([{ text:'📍 حسب المحافظة',callback_data:`t:${team.id}:gov` },{ text:'📊 حسب الحالة',callback_data:`t:${team.id}:st` }]);
     keyboard.push([{ text:'إنتاج اليوم',callback_data:`t:${team.id}:today` },{ text:'الإنذارات',callback_data:`t:${team.id}:alarms` }]);
     keyboard.push([{ text:'الأفضل أداءً',callback_data:`t:${team.id}:top` },{ text:'تحتاج انتباهاً',callback_data:`t:${team.id}:attention` },{ text:'العوائد وCO₂',callback_data:`t:${team.id}:finance` }]);
-    if (isList) await sendTelegram(chatId,pool.length ? (listGov ? `📍 مشاريع ${listGov}` : listSt ? `مشاريع: ${STATE_LABEL[listSt]}` : listKind === 'ess' ? '🔋 مشاريع البطاريات' : listKind === 'ongrid' ? '⚡ مشاريع الأون جريد' : '☀️ مشاريع الفريق') : 'لا توجد مشاريع من هذا النوع.',keyboard);
+    if (isList) await sendTelegram(chatId,pool.length ? (listGov ? `📍 مشاريع ${listGov}` : listSt ? `مشاريع: ${STATE_LABEL[listSt]}` : listKind === 'feed' ? '⚡ مشاريع تورّد للشبكة' : listKind === 'zero' ? '🏭 مشاريع لا تورّد للشبكة' : listKind === 'ess' ? '🔋 مشاريع البطاريات' : listKind === 'ongrid' ? '⚡ مشاريع الأون جريد' : '☀️ مشاريع الفريق') : 'لا توجد مشاريع من هذا النوع.',keyboard);
     else {
       const isReport = (REPORT_KINDS as readonly string[]).includes(action);
       const selected = isReport ? rows : /^p\d+$/.test(action) ? rows.slice(Number(action.slice(1)),Number(action.slice(1))+1) : [];
