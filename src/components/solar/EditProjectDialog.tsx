@@ -25,7 +25,7 @@ export function EditProjectDialog({ row, onClose }: { row: { id: string; name: s
         (db.from("projects") as any).select("name,code,lead_contact,lead_phone,start_date,end_date,notes").eq("id", row.id).maybeSingle(),
         (db.from("solar_projects") as any).select("survey").eq("project_id", row.id).maybeSingle(),
       ]);
-      const sv = (s?.survey ?? {}) as Record<string, any>;
+      const sv: any = s?.survey ?? {};
       setSurvey(sv);
       setF({
         name: p?.name ?? row.name, code: p?.code ?? "", contact: p?.lead_contact ?? sv.owner_name ?? sv.client_name ?? "",
