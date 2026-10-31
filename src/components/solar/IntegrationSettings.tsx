@@ -114,6 +114,21 @@ export function IntegrationSettings() {
           <Button variant="outline" disabled={busy} onClick={() => void act(async () => { const r = await test(); if (r.ok) toast.success(`الاتصال ناجح (${r.own ? "مفاتيح الشركة" : "حساب المنصة"}) — ${r.stations} محطة`); else toast.error(`فشل الاتصال: ${r.message}`); })}><PlugZap className="size-4" />فحص الاتصال</Button>
           <Button variant="ghost" disabled={busy} onClick={() => void act(async () => { if (!window.confirm("حذف مفاتيح سن غرو الخاصة بالشركة؟")) return; await save({ data: { appkey: "", user: "", base: "", clear: true } }); setF({ appkey: "", secret: "", user: "", pass: "", base: "" }); void qc.invalidateQueries({ queryKey: ["integration-settings"] }); })}><Trash2 className="size-4" />مسح</Button>
         </div>
+        <div className="space-y-3 border-t pt-4">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="space-y-1 text-sm"><span className="block">جلب القراءات تلقائياً كل</span>
+              <select aria-label="مدة تحديث قراءات سن غرو" className="h-9 rounded-md border bg-background px-3" disabled={busy || !q.data} value={minutes} onChange={e => setMinutes(Number(e.target.value))}>
+                {SOLAR_SYNC_MINUTES.map(m => <option key={m} value={m}>{m} دقيقة</option>)}
+              </select>
+            </label>
+            <Button disabled={busy || !q.data} onClick={() => void act(async () => { await saveInterval({ data: { minutes } }); await qc.invalidateQueries({ queryKey: ["integration-settings"] }); toast.success("تم حفظ مدة التحديث لهذه الشركة"); })}><Save className="size-4" />حفظ المدة</Button>
+            <Button variant="outline" disabled={busy || !q.data} onClick={() => void act(syncNow)}><RefreshCw className={busy && progress ? "size-4 animate-spin" : "size-4"} />جلب البيانات الآن {progress}</Button>
+          </div>
+          {syncResult && <div role="status" className="space-y-2 text-sm">
+            <p>محطات تم تحديثها: {syncResult.updated} · تعذّر: {syncResult.errors.length}</p>
+            {syncResult.errors.length > 0 && <ul className="max-h-60 space-y-1 overflow-auto text-destructive">{syncResult.errors.map((e, i) => <li key={i} className="break-words">{e}</li>)}</ul>}
+          </div>}
+        </div>
       </section>
       <SmaSettings />
       <section className="space-y-3 rounded-lg border p-4">
