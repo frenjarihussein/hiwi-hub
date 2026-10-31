@@ -37,20 +37,20 @@ export const importSolarStations = createServerFn({ method: 'POST' }).middleware
     if (!(admin || owner) || !permitted || !tenantId) throw new Error('Forbidden');
     const { appDatabaseAdmin: supabaseAdmin } = await import('@/lib/app-database.server');
     // Shared server credentials are claimed once for one tenant, never exposed to other companies.
-    const { sungrowEnvFor } = await import('./integrations.server');
-    const sg = data.provider === 'sungrow' ? await sungrowEnvFor(tenantId) : null;
+    const { sungrowEnvFor, smaEnvFor } = await import('./integrations.server');
+    const sg = data.provider === 'sungrow' ? await sungrowEnvFor(tenantId) : await smaEnvFor(tenantId);
     const { data: account, error: existingError } = await supabaseAdmin.from('solar_provider_accounts').select('id,tenant_id').eq('provider', data.provider).eq('tenant_id', tenantId).maybeSingle();
     if (existingError) throw new Error('Unable to verify provider ownership');
     // Platform (shared) credentials may still be claimed by only one company; own credentials are private to the company.
-    if (!account && !sg?.own) {
+    if (!account && !sg.own) {
       const { data: others } = await supabaseAdmin.from('solar_provider_accounts').select('tenant_id').eq('provider', data.provider).neq('tenant_id', tenantId);
       for (const o of others || []) {
-        const own = await sungrowEnvFor(o.tenant_id).then(e => e.own).catch(() => false);
-        if (!own) throw new Error('This provider account is already assigned to another company. أدخل مفاتيح سن غرو الخاصة بشركتك من إعدادات الربط.');
+        const own = await (data.provider === 'sungrow' ? sungrowEnvFor(o.tenant_id) : smaEnvFor(o.tenant_id)).then(e => e.own).catch(() => false);
+        if (!own) throw new Error('This provider account is already assigned to another company. أدخل مفاتيح الربط الخاصة بشركتك من إعدادات الربط.');
       }
     }
     const { discoverStations } = await import('./solar-providers.server');
-    const stations = await discoverStations(data.provider, sg ?? undefined);
+    const stations = 'appkey' in sg ? await discoverStations('sungrow', sg) : await discoverStations('sma', undefined, sg);
     let accountId = account?.id;
     if (!accountId) {
       const inserted = await supabaseAdmin.from('solar_provider_accounts').insert({ tenant_id: tenantId, provider: data.provider }).select('id').single();
@@ -254,9 +254,11 @@ export const getIntegrationSettings = createServerFn({ method: 'GET' }).middlewa
   const { readIntegration } = await import('./integrations.server');
   const sg = await readIntegration(tenantId, 'sungrow');
   const tg = await readIntegration(tenantId, 'telegram');
+  const sm = await readIntegration(tenantId, 'sma');
   const platform = await readIntegration(null, 'telegram').catch(() => ({} as import('./integrations.server').IntegrationConfig));
   return {
     sungrow: { appkey: sg.appkey || '', user: sg.user || '', base: sg.base || '', hasSecret: Boolean(sg.secret), hasPass: Boolean(sg.pass), own: Boolean(sg.appkey && sg.secret && sg.user && sg.pass) },
+    sma: { client_id: sm.client_id || '', base: sm.base || '', auth: sm.auth || '', hasSecret: Boolean(sm.secret), own: Boolean(sm.client_id && sm.secret) },
     telegram: { canEdit: true, hasToken: Boolean(tg.bot_token), username: tg.username || '', platformUsername: platform.username || 'KFP_solar_bot', isPlatformOwner: owner },
   };
 });
@@ -279,6 +281,29 @@ export const testSungrowSettings = createServerFn({ method: 'POST' }).middleware
   try {
     const env = await sungrowEnvFor(tenantId);
     const stations = await discoverStations('sungrow', env);
+    return { ok: true, own: env.own, stations: stations.length, message: '' };
+  } catch (e) { return { ok: false, own: false, stations: 0, message: e instanceof Error ? e.message : 'فشل الاتصال' }; }
+});
+/** Company SMA (Sunny Portal / ennexOS) API credentials; the secret is write-only. */
+export const saveSmaSettings = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
+  .inputValidator((d: unknown) => z.object({ client_id: z.string().trim().max(300), secret: z.string().max(1000).optional(), base: z.string().trim().url().max(200).or(z.literal('')), auth: z.string().trim().url().max(200).or(z.literal('')), clear: z.boolean().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { tenantId } = await integrationGuard(context);
+    const { readIntegration, writeIntegration } = await import('./integrations.server');
+    if (data.clear) { await writeIntegration(tenantId, 'sma', {}); return { ok: true }; }
+    const old = await readIntegration(tenantId, 'sma');
+    const next: Record<string, string> = { client_id: data.client_id, secret: data.secret || old.secret || '', base: data.base, auth: data.auth };
+    for (const k of Object.keys(next)) if (!next[k]) delete next[k];
+    await writeIntegration(tenantId, 'sma', next);
+    return { ok: true };
+  });
+export const testSmaSettings = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth]).handler(async ({ context }) => {
+  const { tenantId } = await integrationGuard(context);
+  const { smaEnvFor } = await import('./integrations.server');
+  const { discoverStations } = await import('./solar-providers.server');
+  try {
+    const env = await smaEnvFor(tenantId);
+    const stations = await discoverStations('sma', undefined, env);
     return { ok: true, own: env.own, stations: stations.length, message: '' };
   } catch (e) { return { ok: false, own: false, stations: 0, message: e instanceof Error ? e.message : 'فشل الاتصال' }; }
 });
