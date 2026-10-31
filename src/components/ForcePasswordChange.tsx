@@ -22,16 +22,31 @@ export function ForcePasswordChange() {
     },
     staleTime: Infinity,
   });
+  const [cur, setCur] = useState("");
   const [p1, setP1] = useState("");
   const [p2, setP2] = useState("");
   const [busy, setBusy] = useState(false);
 
+  async function skip() {
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc("clear_must_change_password");
+      if (error) throw error;
+      qc.setQueryData(["must_change_password"], false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function save() {
+    if (!cur) { toast.error("أدخل كلمة المرور الحالية"); return; }
     if (p1.length < 6) { toast.error("كلمة المرور 6 أحرف على الأقل"); return; }
     if (p1 !== p2) { toast.error("كلمتا المرور غير متطابقتين"); return; }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: p1 });
+      const { error } = await supabase.auth.updateUser({ password: p1, current_password: cur });
       if (error) throw error;
       const { error: e2 } = await supabase.rpc("clear_must_change_password");
       if (e2) throw e2;
@@ -49,9 +64,13 @@ export function ForcePasswordChange() {
       <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>اختر كلمة مرور جديدة</DialogTitle>
-          <DialogDescription>لحماية حسابك، يجب تغيير كلمة المرور المؤقتة قبل المتابعة.</DialogDescription>
+          <DialogDescription>لحماية حسابك، ننصح بتغيير كلمة المرور المؤقتة، أو يمكنك التخطي والاحتفاظ بها.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>كلمة المرور الحالية</Label>
+            <Input type="password" dir="ltr" value={cur} onChange={(e) => setCur(e.target.value)} />
+          </div>
           <div className="space-y-1">
             <Label>كلمة المرور الجديدة</Label>
             <Input type="password" dir="ltr" value={p1} onChange={(e) => setP1(e.target.value)} />
@@ -61,7 +80,8 @@ export function ForcePasswordChange() {
             <Input type="password" dir="ltr" value={p2} onChange={(e) => setP2(e.target.value)} />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={skip} disabled={busy}>تخطي نهائياً</Button>
           <Button onClick={save} disabled={busy}>{busy ? "جارٍ الحفظ..." : "حفظ"}</Button>
         </DialogFooter>
       </DialogContent>
