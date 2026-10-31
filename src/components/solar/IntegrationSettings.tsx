@@ -81,7 +81,7 @@ export function IntegrationSettings() {
         } catch (e) { errors.push(`${p.name}: ${e instanceof Error ? e.message : "تعذر جلب القراءة"}`); }
       }
       setSyncResult({ updated, errors });
-      await Promise.all([qc.invalidateQueries({ queryKey: ["solar-fleet"] }), qc.invalidateQueries({ queryKey: ["projects"] }), qc.invalidateQueries({ queryKey: ["solar-monitor"] })]);
+      await Promise.all([qc.invalidateQueries({ queryKey: ["solar-fleet"] }), qc.invalidateQueries({ queryKey: ["projects"] }), qc.invalidateQueries({ queryKey: ["solar-monitoring"] }), qc.invalidateQueries({ queryKey: ["solar-history"] })]);
       if (!errors.length) toast.success(`تم جلب قراءات ${updated} محطة`);
       else toast.error(`تم تحديث ${updated} محطة؛ راجع أسباب التعذر أدناه`);
     } finally { setProgress(""); }
