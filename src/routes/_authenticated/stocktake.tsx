@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { db, scope } from "@/lib/db";
 import { can, useMe } from "@/lib/session";
 import { fmtNum, today } from "@/lib/format";
-import { AlertTriangle, Download, Printer } from "lucide-react";
+import { AlertTriangle, Download, Pencil, Printer, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { printDocument } from "@/lib/print";
 import { exportCsv } from "@/lib/export";
@@ -22,6 +23,13 @@ export const Route = createFileRoute("/_authenticated/stocktake")({
   component: StocktakePage,
 });
 
+const ST_REASONS = ["جرد دوري", "جرد سنوي", "جرد مفاجئ", "تسليم واستلام", "تسوية استثنائية", "أخرى"];
+/** Stocktake header notes: first line "السبب: X", the rest is the free note. */
+export const packNotes = (reason: string, note: string) => `السبب: ${reason}${note.trim() ? "\n" + note.trim() : ""}`;
+export const unpackNotes = (n: string | null | undefined) => {
+  const s = n ?? ""; const m = s.match(/^السبب: (.*)(?:\n([\s\S]*))?$/);
+  return m ? { reason: m[1], note: m[2] ?? "" } : { reason: "", note: s === "جرد مخزني وتسوية فروقات" ? "" : s };
+};
 const REASONS = ["تسوية خطأ إدخال", "تلف", "كسر", "انتهاء صلاحية", "هدر", "سرقة", "أخرى"];
 
 
@@ -38,6 +46,9 @@ function StocktakePage() {
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [date, setDate] = useState(today());
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [stReason, setStReason] = useState(ST_REASONS[0]);
+  const [stNotes, setStNotes] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
   const [acc, setAcc] = useState<{ inv?: string; short?: string; surplus?: string }>({});
 
   const base = useQuery({
@@ -85,8 +96,12 @@ function StocktakePage() {
         throw new Error("حدد حساب المخزون وحساب عجز الجرد وحساب زيادة الجرد");
       const cur = baseCur ?? "USD";
       // 1) the stocktake document (numbered by the server) with every counted line
-      const { data: doc, error: de } = await db.from("documents").insert({ tenant_id: me!.tenantId, doc_type: "stocktake", doc_date: date, currency: cur, exchange_rate: 1, warehouse_id: wh, amount: 0, notes: "جرد مخزني وتسوية فروقات" }).select("id,doc_no").single();
+      const notes = packNotes(stReason, stNotes);
+      const { data: doc, error: de } = editId
+        ? await db.from("documents").update({ doc_date: date, warehouse_id: wh, notes }).eq("id", editId).select("id,doc_no").single()
+        : await db.from("documents").insert({ tenant_id: me!.tenantId, doc_type: "stocktake", doc_date: date, currency: cur, exchange_rate: 1, warehouse_id: wh, amount: 0, notes }).select("id,doc_no").single();
       if (de) throw de;
+      if (editId) { const { error } = await db.from("document_lines").delete().eq("document_id", doc.id); if (error) throw error; }
       const counted = rows.filter((r) => r.actualQty !== null && (Math.abs(r.diffQty ?? 0) > 1e-9 || (r.actualQty ?? 0) > 0));
       const lines = counted.map((r) => ({ tenant_id: me!.tenantId, document_id: doc.id, product_id: r.id, warehouse_id: wh, qty: Math.abs(r.diffQty ?? 0) > 1e-9 ? Math.abs(r.diffQty!) : r.actualQty!, unit_price: Math.max(0, r.cost),
         description: JSON.stringify({ book: r.bookQty, actual: r.actualQty, diff: r.diffQty, reason: r.diffQty ? (reasons[r.id] || "تسوية خطأ إدخال") : "" }) }));
@@ -116,7 +131,7 @@ function StocktakePage() {
     },
     onSuccess: (n) => {
       toast.success(`تمت تسوية ${n} مادة`);
-      setCounts({}); setReasons({});
+      setCounts({}); setReasons({}); setEditId(null); setStNotes("");
       qc.invalidateQueries({ queryKey: ["stocktake"] });
       qc.invalidateQueries({ queryKey: ["stocktake-docs"] });
       qc.invalidateQueries({ queryKey: ["stock_moves"] });
@@ -218,7 +233,12 @@ function StocktakePage() {
             {accSel("حساب المخزون", invAcc, "inv")}
             {accSel("حساب عجز الجرد (الخسائر)", shortAcc, "short")}
             {accSel("حساب زيادة الجرد (الأرباح)", surplusAcc, "surplus")}
-            {can(me, "stock", "create") && <Button className="sm:col-span-3" onClick={() => save.mutate()} disabled={!wh || save.isPending}>اعتماد الجرد وتسوية الفروقات</Button>}
+            <label className="flex flex-col gap-1 text-xs">سبب الجرد
+              <select className={sel} value={stReason} onChange={(e) => setStReason(e.target.value)}>{ST_REASONS.map((x) => <option key={x}>{x}</option>)}</select></label>
+            <label className="flex flex-col gap-1 text-xs sm:col-span-2">ملاحظات الجرد
+              <Textarea rows={4} value={stNotes} onChange={(e) => setStNotes(e.target.value)} placeholder="اكتب ملاحظات الجرد..." /></label>
+            {editId && <p className="text-xs text-primary sm:col-span-3">أنت تعدّل جرداً سابقاً — سيُعاد توليد القيود والفروقات عند الاعتماد. <button type="button" className="underline" onClick={() => { setEditId(null); setCounts({}); setReasons({}); setStNotes(""); }}>إلغاء التعديل</button></p>}
+            {can(me, "stock", "create") && <Button className="sm:col-span-3" onClick={() => save.mutate()} disabled={!wh || save.isPending}>{editId ? "حفظ التعديل وإعادة التسوية" : "اعتماد الجرد وتسوية الفروقات"}</Button>}
           </div>
         )}
 
@@ -278,14 +298,29 @@ function StocktakePage() {
           </div>
         )}
       </div>
-      <StocktakeHistory tenantId={me?.tenantId} whName={whName} />
+      <StocktakeHistory tenantId={me?.tenantId} whName={whName} canEdit={can(me, "stock", "edit")} canDelete={can(me, "stock", "delete")} onEdit={async (id) => {
+        try {
+          const { data: d, error } = await db.from("documents").select("doc_date,warehouse_id,notes,status,document_lines(product_id,description)").eq("id", id).single();
+          if (error) throw error;
+          if (d.status === "posted") { const { error: ue } = await db.rpc("unpost_document", { _id: id }); if (ue) throw ue; }
+          const c: Record<string, string> = {}, rs: Record<string, string> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ((d as any).document_lines ?? []).forEach((l: any) => { try { const i = JSON.parse(l.description ?? "{}"); c[l.product_id] = String(i.actual ?? 0); if (i.reason) rs[l.product_id] = i.reason; } catch { /* ignore */ } });
+          const n = unpackNotes(d.notes);
+          setMode("count"); setWh(d.warehouse_id ?? ""); setDate(d.doc_date); setCounts(c); setReasons(rs);
+          setStReason(n.reason || ST_REASONS[0]); setStNotes(n.note); setEditId(id);
+          qc.invalidateQueries({ queryKey: ["stocktake"] }); qc.invalidateQueries({ queryKey: ["stocktake-docs"] });
+          toast.success("تم فتح الجرد للتعديل — عدّل الكميات ثم اعتمد");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (e) { toast.error((e as Error).message); }
+      }} />
     </div>
   );
 }
 
 /** Prints a saved stocktake document from its stored lines (book/actual/diff/reason). */
 async function printStocktake(id: string) {
-  const { data: d } = await db.from("documents").select("doc_no,doc_date,warehouses:warehouse_id(name),document_lines(qty,unit_price,description,products(sku,name,unit))").eq("id", id).single();
+  const { data: d } = await db.from("documents").select("doc_no,doc_date,notes,warehouses:warehouse_id(name),document_lines(qty,unit_price,description,products(sku,name,unit))").eq("id", id).single();
   if (!d) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ls = ((d as any).document_lines ?? []).map((l: any) => ({ ...l, info: (() => { try { return JSON.parse(l.description ?? "{}"); } catch { return {}; } })() }));
@@ -293,7 +328,7 @@ async function printStocktake(id: string) {
   const v = (f: (x: any) => boolean) => ls.filter(f).reduce((t: number, l: any) => t + Math.abs(Number(l.info.diff) || 0) * Number(l.unit_price), 0);
   await printDocument({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    title: `جرد مخزني رقم ${d.doc_no}`, meta: [["التاريخ", d.doc_date], ["المستودع", (d as any).warehouses?.name ?? ""]],
+    title: `جرد مخزني رقم ${d.doc_no}`, meta: [["رقم الجرد", String(d.doc_no)], ["التاريخ", d.doc_date], ["المستودع", (d as any).warehouses?.name ?? ""], ["سبب الجرد", unpackNotes(d.notes).reason || "—"], ["ملاحظات", unpackNotes(d.notes).note || "—"]],
     columns: ["المادة", "الوحدة", "الدفترية", "الفعلية", "الفرق", "التكلفة", "قيمة الفرق", "السبب"],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rows: ls.map((l: any) => [`${l.products?.sku ?? ""} - ${l.products?.name ?? ""}`, l.products?.unit ?? "", fmtNum(l.info.book ?? 0), fmtNum(l.info.actual ?? 0), fmtNum(l.info.diff ?? 0), fmtNum(l.unit_price), fmtNum((Number(l.info.diff) || 0) * Number(l.unit_price)), l.info.reason ?? ""]),
@@ -302,25 +337,41 @@ async function printStocktake(id: string) {
   });
 }
 
-function StocktakeHistory({ tenantId, whName }: { tenantId: string | null | undefined; whName: (id: string) => string }) {
+function StocktakeHistory({ tenantId, whName, onEdit, canEdit, canDelete }: { tenantId: string | null | undefined; whName: (id: string) => string; onEdit: (id: string) => void; canEdit: boolean; canDelete: boolean }) {
+  const qc = useQueryClient();
+  const del = useMutation({
+    mutationFn: async (d: { id: string; status: string }) => {
+      if (d.status === "posted") { const { error } = await db.rpc("unpost_document", { _id: d.id }); if (error) throw error; }
+      const { error: le } = await db.from("document_lines").delete().eq("document_id", d.id); if (le) throw le;
+      const { error } = await db.from("documents").delete().eq("id", d.id); if (error) throw error;
+    },
+    onSuccess: () => { toast.success("تم حذف الجرد وعكس قيوده وفروقاته"); ["stocktake", "stocktake-docs", "stock_moves", "products"].forEach((k) => qc.invalidateQueries({ queryKey: [k] })); },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const list = useQuery({
     queryKey: ["stocktake-docs", tenantId], enabled: !!tenantId,
-    queryFn: async (): Promise<{ id: string; doc_no: number; doc_date: string; warehouse_id: string | null; status: string }[]> => ((await scope(db.from("documents").select("id,doc_no,doc_date,warehouse_id,status,created_at"), tenantId).eq("doc_type", "stocktake").order("doc_no", { ascending: false }).limit(200)).data ?? []) as never,
+    queryFn: async (): Promise<{ id: string; doc_no: number; doc_date: string; warehouse_id: string | null; status: string; notes: string | null }[]> => ((await scope(db.from("documents").select("id,doc_no,doc_date,warehouse_id,status,notes,created_at"), tenantId).eq("doc_type", "stocktake").order("doc_no", { ascending: false }).limit(200)).data ?? []) as never,
   });
   return (
     <div className="mt-8">
       <PageHeader title="سجل الجرودات السابقة" subtitle="كل جرد معتمد محفوظ كمستند «جرد مخزني» برقم تسلسلي" />
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-secondary"><tr><th className="p-2 text-right">الرقم</th><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">المستودع</th><th className="p-2 text-right">الحالة</th><th className="p-2" /></tr></thead>
+          <thead className="bg-secondary"><tr><th className="p-2 text-right">الرقم</th><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">المستودع</th><th className="p-2 text-right">السبب</th><th className="p-2 text-right">ملاحظات</th><th className="p-2 text-right">الحالة</th><th className="p-2" /></tr></thead>
           <tbody>
             {(list.data ?? []).map((d) => (
               <tr key={d.id} className="border-t">
                 <td className="num p-2 font-medium">{d.doc_no}</td>
                 <td className="p-2">{d.doc_date}</td>
                 <td className="p-2">{whName(d.warehouse_id ?? "")}</td>
+                <td className="p-2">{unpackNotes(d.notes).reason || "—"}</td>
+                <td className="max-w-xs truncate p-2 text-xs text-muted-foreground" title={unpackNotes(d.notes).note}>{unpackNotes(d.notes).note || "—"}</td>
                 <td className="p-2">{d.status === "posted" ? "معتمد" : "غير مكتمل"}</td>
-                <td className="p-2 text-left"><Button variant="outline" size="sm" onClick={() => printStocktake(d.id)}><Printer className="size-4" />عرض / طباعة</Button></td>
+                <td className="flex justify-end gap-1 p-2">
+                  <Button variant="outline" size="sm" onClick={() => printStocktake(d.id)}><Printer className="size-4" />طباعة</Button>
+                  {canEdit && <Button variant="outline" size="sm" onClick={() => onEdit(d.id)}><Pencil className="size-4" />تعديل</Button>}
+                  {canDelete && <Button variant="outline" size="sm" disabled={del.isPending} onClick={() => { if (confirm(`حذف الجرد رقم ${d.doc_no}؟ سيتم عكس قيوده وفروقات المستودع.`)) del.mutate(d); }}><Trash2 className="size-4 text-destructive" />حذف</Button>}
+                </td>
               </tr>
             ))}
           </tbody>
