@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { PlugZap, Save, Trash2 } from "lucide-react";
-import { getIntegrationSettings, saveSungrowSettings, testSungrowSettings, saveTelegramToken, saveSmaSettings, testSmaSettings } from "@/lib/solar-fleet.functions";
+import { PlugZap, Save, Trash2, RefreshCw } from "lucide-react";
+import { getIntegrationSettings, saveSungrowSettings, testSungrowSettings, saveTelegramToken, saveSmaSettings, testSmaSettings, saveSungrowSyncInterval, getSungrowSyncProjects } from "@/lib/solar-fleet.functions";
+import { syncSolarMonitor } from "@/lib/solar-monitor.functions";
+import { SOLAR_SYNC_MINUTES } from "@/lib/solar-sync-policy";
 
 /** Company SMA (Sunny Portal / ennexOS) API credentials, mirroring the Sungrow card. */
 function SmaSettings() {
@@ -57,6 +59,33 @@ export function IntegrationSettings() {
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (q.data) setF((o) => ({ ...o, appkey: q.data.sungrow.appkey, user: q.data.sungrow.user, base: q.data.sungrow.base })); }, [q.data]);
   const s = q.data?.sungrow;
+  const saveInterval = useServerFn(saveSungrowSyncInterval), getSyncProjects = useServerFn(getSungrowSyncProjects), syncProject = useServerFn(syncSolarMonitor);
+  const [minutes, setMinutes] = useState(15);
+  const [progress, setProgress] = useState("");
+  const [syncResult, setSyncResult] = useState<{ updated: number; errors: string[] } | null>(null);
+  useEffect(() => { if (q.data) setMinutes(q.data.sungrow.syncMinutes); }, [q.data]);
+  async function syncNow() {
+    setSyncResult(null);
+    try {
+      const projects = await getSyncProjects();
+      if (!projects.length) { toast.error("لا توجد مشاريع مرتبطة بسن غرو للمراقبة؛ اربط المحطات بالمشاريع أولاً"); return; }
+      let updated = 0; const errors: string[] = [];
+      for (let i = 0; i < projects.length; i++) {
+        const p = projects[i];
+        if (!p) continue;
+        setProgress(`${i + 1} / ${projects.length}`);
+        try {
+          const r = await syncProject({ data: { projectId: p.projectId } });
+          if (r.error || !r.reading) errors.push(`${p.name}: ${r.error || "لم تصل قراءة"}`);
+          else { updated++; if (r.historyError) errors.push(`${p.name}: وصلت القراءة لكن تعذر حفظ السجل`); }
+        } catch (e) { errors.push(`${p.name}: ${e instanceof Error ? e.message : "تعذر جلب القراءة"}`); }
+      }
+      setSyncResult({ updated, errors });
+      await Promise.all([qc.invalidateQueries({ queryKey: ["solar-fleet"] }), qc.invalidateQueries({ queryKey: ["projects"] }), qc.invalidateQueries({ queryKey: ["solar-monitor"] })]);
+      if (!errors.length) toast.success(`تم جلب قراءات ${updated} محطة`);
+      else toast.error(`تم تحديث ${updated} محطة؛ راجع أسباب التعذر أدناه`);
+    } finally { setProgress(""); }
+  }
   async function act(fn: () => Promise<void>) { setBusy(true); try { await fn(); } catch (e) { toast.error(e instanceof Error ? e.message : "تعذر التنفيذ"); } finally { setBusy(false); } }
   const field = (k: keyof typeof f, label: string, type = "text", ph = "") => (
     <label className="space-y-1 text-sm"><span>{label}</span><Input type={type} autoComplete="off" value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label>

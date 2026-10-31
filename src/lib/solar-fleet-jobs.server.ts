@@ -6,6 +6,7 @@ import { formatReport, REPORT_KINDS, sendTelegram, type ReportKind } from './tel
 import { effectiveMemberAccess } from './telegram-access.server';
 import { memberTemplates, alertRows,redactReportFinance } from './telegram-preferences';
 import { createHash } from 'node:crypto';
+import { solarSyncDue } from './solar-sync-policy';
 export async function syncFleetJob() {
   const { appDatabaseAdmin: admin } = await import('@/lib/app-database.server');
   const accounts = (await admin.from('solar_provider_accounts').select('id,tenant_id,provider').eq('enabled',true)).data || [];
@@ -16,7 +17,15 @@ export async function syncFleetJob() {
     try {
       const tenant = (await admin.from('tenants').select('is_active,sub_end').eq('id',account.tenant_id).single()).data;
       if (!tenant?.is_active || String(tenant.sub_end) < new Date().toISOString().slice(0,10)) continue;
-      const monitors = (await admin.from('solar_monitoring').select('*').eq('tenant_id',account.tenant_id).eq('provider',account.provider).eq('demo',false).not('fleet_station_id','is',null)).data || [];
+      if (account.provider === 'sungrow') {
+        const { readIntegration, writeIntegration } = await import('./integrations.server');
+        const config = await readIntegration(account.tenant_id, 'sungrow');
+        if (!solarSyncDue(config.sync_minutes, config.last_sync_attempt)) continue;
+        await writeIntegration(account.tenant_id, 'sungrow', { ...config, last_sync_attempt: new Date().toISOString() });
+      }
+      const result = await admin.from('solar_monitoring').select('*').eq('tenant_id',account.tenant_id).eq('provider',account.provider).eq('demo',false);
+      if (result.error) throw new Error('Unable to load monitors');
+      const monitors = result.data || [];
       for (const monitor of monitors) {
         try {
           if (!monitor.plant_id) continue;
@@ -39,7 +48,7 @@ export async function syncFleetJob() {
             await admin.rpc('emit_notification',{ _tenant:account.tenant_id,_kind:'solar_alarm',_title:`⚠️ ${name}`,_body:alert,_link:`/projects/${monitor.project_id}` });
           }
           updated++;
-        } catch { failed++; }
+        } catch (e) { failed++; console.error('Solar sync failed', monitor.project_id, e instanceof Error ? e.message : 'Provider failure'); }
       }
     } catch { failed++; }
     try { await performanceCheck(admin, account.tenant_id, account.provider); } catch (e) { console.error('Performance check failed', e); }

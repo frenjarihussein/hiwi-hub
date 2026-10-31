@@ -1,5 +1,5 @@
 /** Server-only resolution of provider credentials: company settings first, then platform secrets. */
-export type IntegrationConfig = { appkey?: string; secret?: string; user?: string; pass?: string; base?: string; bot_token?: string; username?: string; client_id?: string; auth?: string };
+export type IntegrationConfig = { appkey?: string; secret?: string; user?: string; pass?: string; base?: string; bot_token?: string; username?: string; client_id?: string; auth?: string; sync_minutes?: number; last_sync_attempt?: string };
 export type SungrowEnv = { appkey: string; secret: string; user: string; pass: string; base: string };
 export type IntegrationProvider = 'sungrow' | 'telegram' | 'sma';
 const DEFAULT_SUNGROW_BASE = 'https://gateway.isolarcloud.com.hk';
