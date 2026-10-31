@@ -25,7 +25,10 @@ export const getSolarFleet = createServerFn({ method: 'GET' }).middleware([requi
   }
   const users = (admin || owner) ? (await context.supabase.from('profiles').select('id,full_name,email,is_active').eq('tenant_id',(await context.supabase.rpc('current_tenant_id')).data || '')).data || [] : [];
   const botUsername = (admin || owner) ? await (await import('./integrations.server')).botUsernameFor((await context.supabase.rpc('current_tenant_id')).data || null) : 'KFP_solar_bot';
-  return { botUsername, users, stations: stations.data || [], projects: projects.data || [], monitors: monitors.data || [], members: members.data || [], team, selected, isAdmin: Boolean(admin || owner) };
+  const surveys = (await context.supabase.from('solar_projects').select('project_id,survey')).data || [];
+  const governorates: Record<string, string> = {};
+  for (const s of surveys as any[]) { const g = s?.survey?.governorate; if (g) governorates[s.project_id] = String(g); }
+  return { botUsername, users, governorates, stations: stations.data || [], projects: projects.data || [], monitors: monitors.data || [], members: members.data || [], team, selected, isAdmin: Boolean(admin || owner) };
 });
 
 export const importSolarStations = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
