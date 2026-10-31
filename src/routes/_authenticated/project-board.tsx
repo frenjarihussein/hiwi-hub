@@ -1,5 +1,5 @@
 import { sortSolarRows } from "@/lib/solar-sort";
-import { matchingReading } from "@/lib/solar-monitor";
+import { isStale, matchingReading, type SolarReading } from "@/lib/solar-monitor";
 import { ArrowDownUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -43,6 +43,21 @@ const TONE: Record<string, string> = {
   closed: "bg-muted text-muted-foreground",
 };
 const COLORS = ["#1f3a5f", "#2e7d32", "#0277bd", "#ef6c00", "#6a1b9a", "#c62828", "#00838f", "#5d4037"];
+
+export type Health = 'running' | 'standby' | 'idle' | 'offline' | 'fault' | 'alarm' | 'none';
+const HEALTHS = ['running', 'standby', 'idle', 'alarm', 'fault', 'offline', 'none'] as const;
+const HEALTH_LABEL: Record<Health, string> = { running: '🟢 ينتج', standby: '🌙 استعداد', idle: '⚠️ لا ينتج', alarm: '🔔 إنذارات', fault: '🔴 عطل', offline: '📡 غير متصل', none: '— بلا مراقبة' };
+const HEALTH_TONE: Record<Health, string> = { running: 'bg-primary/10 text-primary', standby: 'bg-muted text-muted-foreground', idle: 'bg-accent text-accent-foreground', alarm: 'bg-accent text-accent-foreground', fault: 'bg-destructive/10 text-destructive', offline: 'bg-destructive/10 text-destructive', none: 'bg-muted text-muted-foreground' };
+/** Operating health for board filters: offline when sync is stale, then fault, alarms, standby, production. */
+export function healthFor(r: SolarReading | null, lastSync: string | null, monitored: boolean, now = new Date()): Health {
+  if (!monitored) return 'none';
+  if (!r || isStale(lastSync, now, 60) || r.status === 'offline') return 'offline';
+  if (r.status === 'fault') return 'fault';
+  if (r.alarms?.length) return 'alarm';
+  if (r.status === 'standby') return 'standby';
+  if (!(r.power_kw > 0)) { const h = now.getHours(); return h >= 9 && h <= 16 ? 'idle' : 'standby'; }
+  return 'running';
+}
 
 function Ring({ value, color }: { value: number; color: string }) {
   const r = 26, c = 2 * Math.PI * r, off = c - (value / 100) * c;
@@ -133,12 +148,24 @@ function Projects() {
     const result = await (supabase.from('solar_monitoring') as any).select('project_id,capacity_kwp,last_data,last_sync,demo,provider,solar_fleet_stations(plant_kind)').eq('tenant_id',me.tenantId);
     if (result.error) throw result.error; return result.data as { project_id: string; capacity_kwp: number; last_data: unknown; last_sync: string | null; demo: boolean; provider: string; solar_fleet_stations: { plant_kind: string | null } | null }[];
   } });
+  const wbs = useQuery({ queryKey:['projects','board-wbs',me?.tenantId],enabled:!!me?.tenantId,queryFn:async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await (db.from('project_wbs') as any).select('project_id,name,progress,is_final,sort_order,end_date').eq('tenant_id',me!.tenantId).eq('is_final',true).order('sort_order').limit(10000);
+    if (r.error) throw r.error; return (r.data ?? []) as { project_id: string; name: string; progress: number; end_date: string | null }[];
+  } });
+  const snags = useQuery({ queryKey:['projects','board-snags',me?.tenantId],enabled:!!me?.tenantId,queryFn:async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await (db.from('project_snags') as any).select('project_id,status').eq('tenant_id',me!.tenantId).neq('status','closed');
+    return (r.data ?? []) as { project_id: string }[];
+  } });
   const [kind, setKind] = useState<'all' | 'ess' | 'ongrid'>('all');
+  const [health, setHealth] = useState<'all' | Health>('all');
   const kindOf = (id: string) => { const m = monitoring.data?.find(x => x.project_id === id); if (!m) return null; return m.solar_fleet_stations?.plant_kind ?? (matchingReading(m.last_data,m.demo,m.provider)?.extra?.plant_kind ?? null); };
+  const healthOf = (id: string): Health => { const m = monitoring.data?.find(x => x.project_id === id); return healthFor(m ? matchingReading(m.last_data,m.demo,m.provider) : null, m?.last_sync ?? null, !!m); };
   const rows = list.data ?? [];
   const cats = useProjectCategories(me?.tenantId).data ?? [];
   const inCat = useMemo(() => (cat ? categoryDescendants(cats, cat) : null), [cats, cat]);
-  const shown = sortSolarRows(rows.filter((r) => (tab === "all" || r.status === tab) && (kind === 'all' || kindOf(r.id) === kind) && (!inCat || (!!r.parent_id && inCat.has(r.parent_id))) && (!q || `${r.name} ${r.code ?? ""}`.includes(q))),r => {
+  const shown = sortSolarRows(rows.filter((r) => (tab === "all" || r.status === tab) && (kind === 'all' || kindOf(r.id) === kind) && (health === 'all' || healthOf(r.id) === health) && (!inCat || (!!r.parent_id && inCat.has(r.parent_id))) && (!q || `${r.name} ${r.code ?? ""}`.includes(q))),r => {
     const m = monitoring.data?.find(m => m.project_id === r.id);
     const reading = m ? matchingReading(m.last_data,m.demo,m.provider) : null;
     return sort === 'capacity' ? (m ? Number(m.capacity_kwp) : null) : sort === 'power' ? reading?.power_kw : sort === 'today' ? reading?.today_kwh : sort === 'month' ? reading?.month_kwh : sort === 'total' ? reading?.total_kwh : sort === 'updated' ? m?.last_sync : sort === 'status' ? r.status : sort === 'completion' ? Number(r.completion_pct) : r.name;
@@ -200,6 +227,9 @@ function Projects() {
         </div>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {([['all','كل الأنواع'],['ess','🔋 بطاريات'],['ongrid','⚡ أون جريد']] as const).map(([k,l]) => <Button key={k} size="sm" className="shrink-0" variant={kind === k ? "default" : "outline"} onClick={() => setKind(k)}>{l} ({k === 'all' ? rows.length : rows.filter(r => kindOf(r.id) === k).length})</Button>)}
+        </div>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {(['all', ...HEALTHS] as const).map((k) => <Button key={k} size="sm" className="shrink-0" variant={health === k ? "default" : "outline"} onClick={() => setHealth(k)}>{k === 'all' ? 'كل حالات التشغيل' : HEALTH_LABEL[k]} ({k === 'all' ? rows.length : rows.filter(r => healthOf(r.id) === k).length})</Button>)}
         </div>
         <div className="flex w-full gap-2 lg:ms-auto lg:w-72">
           <CategorySelect cats={cats} value={cat} onChange={setCat} placeholder="كل التصنيفات" />
