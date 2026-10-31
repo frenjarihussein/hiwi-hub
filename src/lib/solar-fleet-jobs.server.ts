@@ -24,7 +24,7 @@ export async function syncFleetJob() {
           const units = [{ provider: account.provider as string, plant_id: monitor.plant_id as string, capacity_kwp: Number(monitor.capacity_kwp) }, ...((Array.isArray(monitor.extra_units) ? monitor.extra_units : []) as unknown as SolarUnit[]).map((u) => ({ provider: u.provider as string, plant_id: u.plant_id, capacity_kwp: Number(u.capacity_kwp) || 0 }))];
           // All inverters of the project must answer; partial totals would look like a production drop.
           const readings = [];
-          for (let i = 0; i < units.length; i += 6) readings.push(...await Promise.all(units.slice(i,i+6).map(async (u) => u.provider === 'sungrow' ? fetchSungrow(await sgEnv(), u.plant_id, u.capacity_kwp) : fetchSma(smaEnv(), u.plant_id, u.capacity_kwp))));
+          for (let i = 0; i < units.length; i += 6) readings.push(...await Promise.all(units.slice(i,i+6).map(async (u) => u.provider === 'sungrow' ? fetchSungrow(await sgEnv(), u.plant_id, u.capacity_kwp) : fetchSma(await smaEnv(), u.plant_id, u.capacity_kwp))));
           const reading = combineReadings(readings);
           if (!reading) throw new Error('No readings');
           if (!matchingReading(reading,false,account.provider)) throw new Error('Invalid reading');
