@@ -319,11 +319,11 @@ function StocktakePage() {
 }
 
 /** Prints a saved stocktake document from its stored lines (book/actual/diff/reason). */
-async function printStocktake(id: string) {
+async function printStocktake(id: string, withZero = true) {
   const { data: d } = await db.from("documents").select("doc_no,doc_date,notes,warehouses:warehouse_id(name),document_lines(qty,unit_price,description,products(sku,name,unit))").eq("id", id).single();
   if (!d) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ls = ((d as any).document_lines ?? []).map((l: any) => ({ ...l, info: (() => { try { return JSON.parse(l.description ?? "{}"); } catch { return {}; } })() }));
+  const ls = ((d as any).document_lines ?? []).map((l: any) => ({ ...l, info: (() => { try { return JSON.parse(l.description ?? "{}"); } catch { return {}; } })() })).filter((l: any) => withZero || Math.abs(Number(l.info.diff) || 0) > 1e-9);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const v = (f: (x: any) => boolean) => ls.filter(f).reduce((t: number, l: any) => t + Math.abs(Number(l.info.diff) || 0) * Number(l.unit_price), 0);
   await printDocument({
@@ -339,6 +339,7 @@ async function printStocktake(id: string) {
 
 function StocktakeHistory({ tenantId, whName, onEdit, canEdit, canDelete }: { tenantId: string | null | undefined; whName: (id: string) => string; onEdit: (id: string) => void; canEdit: boolean; canDelete: boolean }) {
   const qc = useQueryClient();
+  const [withZero, setWithZero] = useState(true);
   const del = useMutation({
     mutationFn: async (d: { id: string; status: string }) => {
       if (d.status === "posted") { const { error } = await db.rpc("unpost_document", { _id: d.id }); if (error) throw error; }
@@ -355,6 +356,7 @@ function StocktakeHistory({ tenantId, whName, onEdit, canEdit, canDelete }: { te
   return (
     <div className="mt-8">
       <PageHeader title="سجل الجرودات السابقة" subtitle="كل جرد معتمد محفوظ كمستند «جرد مخزني» برقم تسلسلي" />
+      <label className="mb-2 flex items-center gap-2 text-sm"><Switch checked={withZero} onCheckedChange={setWithZero} />عرض المواد التي بلا فروقات أيضاً</label>
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-secondary"><tr><th className="p-2 text-right">الرقم</th><th className="p-2 text-right">التاريخ</th><th className="p-2 text-right">المستودع</th><th className="p-2 text-right">السبب</th><th className="p-2 text-right">ملاحظات</th><th className="p-2 text-right">الحالة</th><th className="p-2" /></tr></thead>
@@ -368,7 +370,7 @@ function StocktakeHistory({ tenantId, whName, onEdit, canEdit, canDelete }: { te
                 <td className="max-w-xs truncate p-2 text-xs text-muted-foreground" title={unpackNotes(d.notes).note}>{unpackNotes(d.notes).note || "—"}</td>
                 <td className="p-2">{d.status === "posted" ? "معتمد" : "غير مكتمل"}</td>
                 <td className="flex justify-end gap-1 p-2">
-                  <Button variant="outline" size="sm" onClick={() => printStocktake(d.id)}><Printer className="size-4" />طباعة</Button>
+                  <Button variant="outline" size="sm" onClick={() => printStocktake(d.id, withZero)}><Printer className="size-4" />عرض / طباعة</Button>
                   {canEdit && <Button variant="outline" size="sm" onClick={() => onEdit(d.id)}><Pencil className="size-4" />تعديل</Button>}
                   {canDelete && <Button variant="outline" size="sm" disabled={del.isPending} onClick={() => { if (confirm(`حذف الجرد رقم ${d.doc_no}؟ سيتم عكس قيوده وفروقات المستودع.`)) del.mutate(d); }}><Trash2 className="size-4 text-destructive" />حذف</Button>}
                 </td>
