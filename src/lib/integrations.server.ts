@@ -43,8 +43,21 @@ export async function sungrowEnvFor(tenantId: string | null): Promise<SungrowEnv
 }
 
 /** The platform Telegram bot token: saved setting first, then the platform secret. */
+import { AsyncLocalStorage } from 'node:async_hooks';
+/** Company whose own bot handles the current request/delivery; empty = platform bot. */
+const botScope = new AsyncLocalStorage<string | null>();
+export function withTenantBot<T>(tenantId: string | null | undefined, fn: () => Promise<T>) { return botScope.run(tenantId || null, fn); }
+async function scopedBot() {
+  const tenant = botScope.getStore();
+  if (tenant) { const own = await readIntegration(tenant, 'telegram').catch(() => ({} as IntegrationConfig)); if (own.bot_token) return own; }
+  return readIntegration(null, 'telegram').catch(() => ({} as IntegrationConfig));
+}
+/** Username of the bot serving a company: its own bot first, then the platform bot. */
+export async function botUsernameFor(tenantId: string | null) {
+  return withTenantBot(tenantId, async () => (await scopedBot()).username || 'KFP_solar_bot');
+}
 export async function telegramBotToken() {
-  const c = await readIntegration(null, 'telegram').catch(() => ({} as IntegrationConfig));
+  const c = await scopedBot();
   const t = c.bot_token || process.env['TELEGRAM_BOT_TOKEN'];
   if (!t) throw new Error('TELEGRAM_BOT_TOKEN is not configured');
   return t;
