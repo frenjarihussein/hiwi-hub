@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SYRIA_GOVERNORATES } from '@/lib/syria-governorates';
 import { IntegrationSettings, ClientPortal } from '@/components/solar/IntegrationSettings';
 const options = queryOptions({ queryKey: ['solar-fleet'], queryFn: () => getSolarFleet() });
 export const Route = createFileRoute('/_authenticated/solar-fleet')({
@@ -47,18 +48,21 @@ function Fleet() {
   const [linked, setLinked] = useState('all');
   const [providerFilter, setProviderFilter] = useState('all');
   const [kindFilter, setKindFilter] = useState('all');
+  const [govFilter, setGovFilter] = useState('all');
+  const govOf = (projectId?: string | null) => (projectId && (data as any).governorates?.[projectId]) || '';
   const [sort,setSort] = useState('name');
   const [descending,setDescending] = useState(false);
   const visible = sortSolarRows(data.stations.filter(s => {
     const monitor = data.monitors.find(m => m.fleet_station_id === s.id);
     const reading = stationReading(data, s.id);
     const project = data.projects.find(p => p.id === monitor?.project_id);
-    const text = `${s.name} ${s.plant_id} ${project?.name || ''}`.toLowerCase();
-    return text.includes(search.toLowerCase().trim()) && (providerFilter === 'all' || s.provider === providerFilter) && (kindFilter === 'all' || ((s as any).plant_kind ?? reading?.extra?.plant_kind) === kindFilter) && (linked === 'all' || (linked === 'linked' ? !!monitor : !monitor)) && (status === 'all' || (status === 'stale' ? !!reading && isStale(reading.at, new Date()) : status === 'alarms' ? !!reading?.alarms.length : status === 'none' ? !reading : reading?.status === status));
+    const gov = govOf(monitor?.project_id);
+    const text = `${s.name} ${s.plant_id} ${project?.name || ''} ${gov}`.toLowerCase();
+    return (govFilter === 'all' || (govFilter === 'none' ? !gov : gov === govFilter)) && text.includes(search.toLowerCase().trim()) && (providerFilter === 'all' || s.provider === providerFilter) && (kindFilter === 'all' || ((s as any).plant_kind ?? reading?.extra?.plant_kind) === kindFilter) && (linked === 'all' || (linked === 'linked' ? !!monitor : !monitor)) && (status === 'all' || (status === 'stale' ? !!reading && isStale(reading.at, new Date()) : status === 'alarms' ? !!reading?.alarms.length : status === 'none' ? !reading : reading?.status === status));
   }),s => {
     const m = data.monitors.find(m => m.fleet_station_id === s.id);
     const r = stationReading(data,s.id);
-    return sort === 'capacity' ? Number(s.capacity_kwp) : sort === 'project' ? data.projects.find(p => p.id === m?.project_id)?.name : sort === 'today' ? r?.today_kwh : sort === 'month' ? r?.month_kwh : sort === 'total' ? r?.total_kwh : sort === 'power' ? r?.power_kw : sort === 'status' ? r?.status : sort === 'updated' ? m?.last_sync : s.name;
+    return sort === 'capacity' ? Number(s.capacity_kwp) : sort === 'project' ? data.projects.find(p => p.id === m?.project_id)?.name : sort === 'today' ? r?.today_kwh : sort === 'month' ? r?.month_kwh : sort === 'total' ? r?.total_kwh : sort === 'power' ? r?.power_kw : sort === 'status' ? r?.status : sort === 'updated' ? m?.last_sync : sort === 'governorate' ? govOf(m?.project_id) : s.name;
   },descending);
   async function run(key: string, action: () => Promise<unknown>) {
     setBusy(key);
@@ -78,13 +82,14 @@ function Fleet() {
       {data.isAdmin && <TabsContent value="integrations" className="pt-3"><IntegrationSettings /></TabsContent>}
       <TabsContent value="stations" className="space-y-4 pt-3">
         {data.isAdmin && <div className="flex flex-wrap gap-2">{(['sungrow'] as const).map(provider => <Button key={provider} disabled={busy !== null} variant="outline" onClick={() => run(provider, async () => { const result = await load({ data: { provider } }); toast.success(`${result.count} ${label('محطة مستوردة', 'stations imported')}`); })}><Download className="size-4" />{label('استيراد محطات', 'Import Stations')} Sungrow</Button>)}</div>}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Input aria-label="بحث عن محطة" placeholder="بحث بالمحطة أو المشروع أو الرقم" value={search} onChange={e => setSearch(e.target.value)} />{[
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6"><Input aria-label="بحث عن محطة" placeholder="بحث بالمحطة أو المشروع أو الرقم" value={search} onChange={e => setSearch(e.target.value)} />{[
           { value: status, set: setStatus, title: 'الحالة', values: [['all','كل الحالات'],['running','يعمل'],['standby','استعداد'],['offline','غير متصل'],['fault','عطل'],['alarms','إنذارات'],['stale','قراءة متأخرة'],['none','بلا قراءة']] },
           { value: linked, set: setLinked, title: 'الربط', values: [['all','كل المحطات'],['linked','مرتبطة'],['unlinked','غير مرتبطة']] },
           { value: providerFilter, set: setProviderFilter, title: 'المزود', values: [['all','كل المزودين'],['sungrow','Sungrow'],['sma','SMA']] },
           { value: kindFilter, set: setKindFilter, title: 'نوع المحطة', values: [['all','كل الأنواع'],['ess','🔋 بطاريات منزلي'],['ongrid','⚡ أون جريد']] },
+          { value: govFilter, set: setGovFilter, title: 'المحافظة', values: [['all','كل المحافظات'],...SYRIA_GOVERNORATES.map(g => [g, g]),['none','بلا محافظة']] },
         ].map(f => <Select key={f.title} value={f.value} onValueChange={f.set}><SelectTrigger aria-label={f.title}><SelectValue /></SelectTrigger><SelectContent>{f.values.map(([value,title]) => <SelectItem key={value} value={value || 'all'}>{title}</SelectItem>)}</SelectContent></Select>)}</div>
-        <div className="flex flex-wrap items-center gap-2"><Select value={sort} onValueChange={setSort}><SelectTrigger className="w-56" aria-label="ترتيب المحطات"><SelectValue /></SelectTrigger><SelectContent>{[['name','اسم المحطة'],['project','اسم المشروع'],['capacity','الاستطاعة'],['power','القدرة اللحظية'],['today','إنتاج اليوم'],['month','إنتاج الشهر'],['total','الإنتاج التراكمي'],['status','الحالة'],['updated','آخر تحديث']].map(([k,v]) => <SelectItem key={k} value={k || 'name'}>{v}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="icon" title={descending ? 'ترتيب تنازلي' : 'ترتيب تصاعدي'} aria-label={descending ? 'ترتيب تنازلي' : 'ترتيب تصاعدي'} onClick={() => setDescending(v => !v)}><ArrowDownUp className="size-4" /></Button></div>
+        <div className="flex flex-wrap items-center gap-2"><Select value={sort} onValueChange={setSort}><SelectTrigger className="w-56" aria-label="ترتيب المحطات"><SelectValue /></SelectTrigger><SelectContent>{[['name','اسم المحطة'],['project','اسم المشروع'],['capacity','الاستطاعة'],['power','القدرة اللحظية'],['today','إنتاج اليوم'],['month','إنتاج الشهر'],['total','الإنتاج التراكمي'],['status','الحالة'],['updated','آخر تحديث'],['governorate','المحافظة']].map(([k,v]) => <SelectItem key={k} value={k || 'name'}>{v}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="icon" title={descending ? 'ترتيب تنازلي' : 'ترتيب تصاعدي'} aria-label={descending ? 'ترتيب تنازلي' : 'ترتيب تصاعدي'} onClick={() => setDescending(v => !v)}><ArrowDownUp className="size-4" /></Button></div>
         <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2 text-sm">
           <label className="flex items-center gap-2"><Checkbox checked={visible.length > 0 && visible.every(s => selected.includes(s.id))} onCheckedChange={c => setSelected(c === true ? visible.map(s => s.id) : [])} />تحديد الكل</label>
           <span className="text-muted-foreground">({selected.length} محددة · {visible.length} / {data.stations.length} محطة)</span>
@@ -100,7 +105,7 @@ function Fleet() {
           const monitor = data.monitors.find(m => m.fleet_station_id === station.id);
           return <div key={station.id} className="grid gap-3 py-4 md:grid-cols-[auto_1fr_1fr_1fr]">
             <Checkbox className="mt-1" aria-label={`تحديد ${station.name}`} checked={selected.includes(station.id)} onCheckedChange={c => setSelected(prev => c === true ? [...prev, station.id] : prev.filter(id => id !== station.id))} />
-            <div className="min-w-0"><p className="break-words font-semibold">{station.name}</p>{(() => { const k = (station as any).plant_kind ?? stationReading(data, station.id)?.extra?.plant_kind; return k ? <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">{plantKindLabel(k)}</span> : null; })()}<p className="text-xs text-muted-foreground" dir="ltr">{station.provider === 'sma' ? 'SMA' : 'Sungrow'} · {station.plant_id} · {station.capacity_kwp} kWp</p></div>
+            <div className="min-w-0"><p className="break-words font-semibold">{station.name}</p>{(() => { const k = (station as any).plant_kind ?? stationReading(data, station.id)?.extra?.plant_kind; return k ? <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">{plantKindLabel(k)}</span> : null; })()}{govOf(monitor?.project_id) && <span className="ms-1 mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">📍 {govOf(monitor?.project_id)}</span>}<p className="text-xs text-muted-foreground" dir="ltr">{station.provider === 'sma' ? 'SMA' : 'Sungrow'} · {station.plant_id} · {station.capacity_kwp} kWp</p></div>
             <Select value={monitor?.project_id || 'none'} disabled={!can(me,'projects','edit') || busy !== null} onValueChange={projectId => { if (projectId === 'new') { const name = window.prompt('اسم المشروع الجديد', station.name); if (name?.trim()) void run(station.id, async () => { await createFor({ data: { stationIds: [station.id], name: name.trim() } }); toast.success('تم إنشاء المشروع وربط المحطة'); }); return; } void run(station.id, () => bind({ data: { stationId: station.id, projectId: projectId === 'none' ? null : projectId } })); }}>
               <SelectTrigger aria-label={`${label('مشروع المحطة', 'Station Project')} ${station.name}`}><SelectValue placeholder={label('اختر المشروع', 'Select Project')} /></SelectTrigger>
               <SelectContent><SelectItem value="none">{label('غير مرتبط', 'Unlinked')}</SelectItem>{can(me,'projects','create') && <SelectItem value="new">+ {label('إنشاء مشروع جديد', 'Create new project')}</SelectItem>}{data.projects.map(project => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
