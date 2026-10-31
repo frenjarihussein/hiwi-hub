@@ -1,0 +1,1 @@
+ALTER TABLE public.doc_patterns ADD COLUMN IF NOT EXISTS cash_account_ids uuid[] NOT NULL DEFAULT '{}', ADD COLUMN IF NOT EXISTS currency_codes text[] NOT NULL DEFAULT '{}';

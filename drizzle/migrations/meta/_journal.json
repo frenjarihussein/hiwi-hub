@@ -1,0 +1,216 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793096028599,
+      "tag": "0000_portal_password_performance",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793098628206,
+      "tag": "0001_telegram_client_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793099169811,
+      "tag": "0002_client_link_password",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793191417025,
+      "tag": "0003_doc_patterns",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793195929051,
+      "tag": "0004_verify_restored_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793196331451,
+      "tag": "0005_doc_pattern_user_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793197125761,
+      "tag": "0006_pattern_management",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793198661297,
+      "tag": "0007_doc_pattern_partner_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793200319158,
+      "tag": "0008_pattern_warehouses_primary_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793200543419,
+      "tag": "0009_custom_entry_patterns",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793200946365,
+      "tag": "0010_year_end_wizard_receipt_template",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793209596315,
+      "tag": "0011_pattern_cash_currency_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793213683603,
+      "tag": "0012_post_document_pattern_isolation",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793214092848,
+      "tag": "0013_restore_tenant_full_everything",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793214829520,
+      "tag": "0014_pos_stations",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793219541990,
+      "tag": "0015_pos_station_scopes",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793220012543,
+      "tag": "0016_opening_capital_choice",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793273500414,
+      "tag": "0017_restore_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793276932061,
+      "tag": "0018_chunked_company_restore",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793277873586,
+      "tag": "0019_fix_purge_tenant",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793281033545,
+      "tag": "0020_tenant_theme_colors",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793282976011,
+      "tag": "0021_storage_tenant_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793285035977,
+      "tag": "0022_tenant_white_label",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793285253196,
+      "tag": "0023_restored_user_temp_passwords",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793285653646,
+      "tag": "0024_must_change_password",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793370608032,
+      "tag": "0025_fix_post_cost_document_ambiguous_x",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793372650677,
+      "tag": "0026_fix_branch_and_opening_unpost",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793436117688,
+      "tag": "0027_fleet_station_plant_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793438289040,
+      "tag": "0028_stocktake_document",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793439221426,
+      "tag": "0029_tenant_integrations",
+      "breakpoints": true
+    }
+  ]
+}

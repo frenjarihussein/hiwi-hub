@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.tenants IS 'Restored from backup schema';

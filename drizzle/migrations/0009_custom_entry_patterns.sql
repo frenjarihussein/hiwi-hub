@@ -1,0 +1,1 @@
+ALTER TABLE public.doc_patterns ADD COLUMN IF NOT EXISTS entry_lines jsonb NOT NULL DEFAULT '[]'::jsonb;

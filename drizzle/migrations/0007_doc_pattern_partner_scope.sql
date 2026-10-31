@@ -1,0 +1,2 @@
+ALTER TABLE public.doc_patterns ADD COLUMN IF NOT EXISTS partner_group_ids uuid[] NOT NULL DEFAULT '{}';
+ALTER TABLE public.doc_patterns ADD COLUMN IF NOT EXISTS partner_account_ids uuid[] NOT NULL DEFAULT '{}';

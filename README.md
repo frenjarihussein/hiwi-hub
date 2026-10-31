@@ -1,12 +1,12 @@
-# Hiwi Hub
+# Spark Joy
 
-hiwi
+0
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/141fd6fe-c550-4a28-8463-534896e2e123).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/92b0c09a-1245-4e08-907e-27f74edf4443).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.

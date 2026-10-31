@@ -1,0 +1,1 @@
+ALTER TABLE public.solar_fleet_stations ADD COLUMN IF NOT EXISTS plant_kind text CHECK (plant_kind IS NULL OR plant_kind IN ('ess','ongrid'));

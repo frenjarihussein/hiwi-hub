@@ -10,33 +10,932 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
+import { Route as AuthenticatedAiDraftsRouteImport } from './routes/_authenticated/ai-drafts'
+import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
+import { Route as AuthenticatedAssemblyRouteImport } from './routes/_authenticated/assembly'
+import { Route as AuthenticatedAssetsRouteImport } from './routes/_authenticated/assets'
+import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
+import { Route as AuthenticatedBatchesRouteImport } from './routes/_authenticated/batches'
+import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
+import { Route as AuthenticatedChequesRouteImport } from './routes/_authenticated/cheques'
+import { Route as AuthenticatedCollabRouteImport } from './routes/_authenticated/collab'
+import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
+import { Route as AuthenticatedCostCentersRouteImport } from './routes/_authenticated/cost-centers'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDocPatternsRouteImport } from './routes/_authenticated/doc-patterns'
+import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedHotelRouteImport } from './routes/_authenticated/hotel'
+import { Route as AuthenticatedJournalRouteImport } from './routes/_authenticated/journal'
+import { Route as AuthenticatedLedgersRouteImport } from './routes/_authenticated/ledgers'
+import { Route as AuthenticatedManualRouteImport } from './routes/_authenticated/manual'
+import { Route as AuthenticatedManufacturingRouteImport } from './routes/_authenticated/manufacturing'
+import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedOpeningClosingRouteImport } from './routes/_authenticated/opening-closing'
+import { Route as AuthenticatedOwnerDashboardRouteImport } from './routes/_authenticated/owner-dashboard'
+import { Route as AuthenticatedOwnerFinanceRouteImport } from './routes/_authenticated/owner-finance'
+import { Route as AuthenticatedOwnerReportsRouteImport } from './routes/_authenticated/owner-reports'
+import { Route as AuthenticatedPartnersRouteImport } from './routes/_authenticated/partners'
+import { Route as AuthenticatedPayrollRouteImport } from './routes/_authenticated/payroll'
+import { Route as AuthenticatedPosRouteImport } from './routes/_authenticated/pos'
+import { Route as AuthenticatedPosStationsRouteImport } from './routes/_authenticated/pos-stations'
+import { Route as AuthenticatedProductCategoriesRouteImport } from './routes/_authenticated/product-categories'
+import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
+import { Route as AuthenticatedProjectBoardRouteImport } from './routes/_authenticated/project-board'
+import { Route as AuthenticatedProjectCategoriesRouteImport } from './routes/_authenticated/project-categories'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
+import { Route as AuthenticatedPurchasePosRouteImport } from './routes/_authenticated/purchase-pos'
+import { Route as AuthenticatedRecipesRouteImport } from './routes/_authenticated/recipes'
+import { Route as AuthenticatedRecurringRouteImport } from './routes/_authenticated/recurring'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedServiceOpsRouteImport } from './routes/_authenticated/service-ops'
+import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticated/services'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedShortcutsRouteImport } from './routes/_authenticated/shortcuts'
+import { Route as AuthenticatedSolarFleetRouteImport } from './routes/_authenticated/solar-fleet'
+import { Route as AuthenticatedStockRouteImport } from './routes/_authenticated/stock'
+import { Route as AuthenticatedStocktakeRouteImport } from './routes/_authenticated/stocktake'
+import { Route as AuthenticatedSubscriptionsRouteImport } from './routes/_authenticated/subscriptions'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedTreasuryRouteImport } from './routes/_authenticated/treasury'
+import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedWarehouseCategoriesRouteImport } from './routes/_authenticated/warehouse-categories'
+import { Route as AuthenticatedWarehouseDeskRouteImport } from './routes/_authenticated/warehouse-desk'
+import { Route as AuthenticatedWarehousesRouteImport } from './routes/_authenticated/warehouses'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiPosVoiceRouteImport } from './routes/api/pos-voice'
+import { Route as ApiSolarFaultRouteImport } from './routes/api/solar-fault'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as SolarTokenRouteImport } from './routes/solar.$token'
+import { Route as AuthenticatedAssistantIndexRouteImport } from './routes/_authenticated/assistant.index'
+import { Route as AuthenticatedAssistantThreadIdRouteImport } from './routes/_authenticated/assistant.$threadId'
+import { Route as AuthenticatedEmployeesEmployeeIdRouteImport } from './routes/_authenticated/employees.$employeeId'
+import { Route as AuthenticatedJournalEntryIdRouteImport } from './routes/_authenticated/journal.$entryId'
+import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects_.$projectId'
+import { Route as AuthenticatedStatementPartnerIdRouteImport } from './routes/_authenticated/statement.$partnerId'
+import { Route as ApiPublicBrandTenantIdRouteImport } from './routes/api/public/brand/$tenantId'
+import { Route as ApiPublicHooksScheduledBackupRouteImport } from './routes/api/public/hooks/scheduled-backup'
+import { Route as ApiPublicJobsSolarFleetRouteImport } from './routes/api/public/jobs/solar-fleet'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAiDraftsRoute = AuthenticatedAiDraftsRouteImport.update({
+  id: '/ai-drafts',
+  path: '/ai-drafts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedApprovalsRoute = AuthenticatedApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAssemblyRoute = AuthenticatedAssemblyRouteImport.update({
+  id: '/assembly',
+  path: '/assembly',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAssetsRoute = AuthenticatedAssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBatchesRoute = AuthenticatedBatchesRouteImport.update({
+  id: '/batches',
+  path: '/batches',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChequesRoute = AuthenticatedChequesRouteImport.update({
+  id: '/cheques',
+  path: '/cheques',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCollabRoute = AuthenticatedCollabRouteImport.update({
+  id: '/collab',
+  path: '/collab',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCompaniesRoute = AuthenticatedCompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCostCentersRoute =
+  AuthenticatedCostCentersRouteImport.update({
+    id: '/cost-centers',
+    path: '/cost-centers',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDocPatternsRoute =
+  AuthenticatedDocPatternsRouteImport.update({
+    id: '/doc-patterns',
+    path: '/doc-patterns',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHotelRoute = AuthenticatedHotelRouteImport.update({
+  id: '/hotel',
+  path: '/hotel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedJournalRoute = AuthenticatedJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLedgersRoute = AuthenticatedLedgersRouteImport.update({
+  id: '/ledgers',
+  path: '/ledgers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedManualRoute = AuthenticatedManualRouteImport.update({
+  id: '/manual',
+  path: '/manual',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedManufacturingRoute =
+  AuthenticatedManufacturingRouteImport.update({
+    id: '/manufacturing',
+    path: '/manufacturing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNotesRoute = AuthenticatedNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOpeningClosingRoute =
+  AuthenticatedOpeningClosingRouteImport.update({
+    id: '/opening-closing',
+    path: '/opening-closing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOwnerDashboardRoute =
+  AuthenticatedOwnerDashboardRouteImport.update({
+    id: '/owner-dashboard',
+    path: '/owner-dashboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOwnerFinanceRoute =
+  AuthenticatedOwnerFinanceRouteImport.update({
+    id: '/owner-finance',
+    path: '/owner-finance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOwnerReportsRoute =
+  AuthenticatedOwnerReportsRouteImport.update({
+    id: '/owner-reports',
+    path: '/owner-reports',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPartnersRoute = AuthenticatedPartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPayrollRoute = AuthenticatedPayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPosRoute = AuthenticatedPosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPosStationsRoute =
+  AuthenticatedPosStationsRouteImport.update({
+    id: '/pos-stations',
+    path: '/pos-stations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProductCategoriesRoute =
+  AuthenticatedProductCategoriesRouteImport.update({
+    id: '/product-categories',
+    path: '/product-categories',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProjectBoardRoute =
+  AuthenticatedProjectBoardRouteImport.update({
+    id: '/project-board',
+    path: '/project-board',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProjectCategoriesRoute =
+  AuthenticatedProjectCategoriesRouteImport.update({
+    id: '/project-categories',
+    path: '/project-categories',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPurchasePosRoute =
+  AuthenticatedPurchasePosRouteImport.update({
+    id: '/purchase-pos',
+    path: '/purchase-pos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRecipesRoute = AuthenticatedRecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecurringRoute = AuthenticatedRecurringRouteImport.update({
+  id: '/recurring',
+  path: '/recurring',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedServiceOpsRoute = AuthenticatedServiceOpsRouteImport.update({
+  id: '/service-ops',
+  path: '/service-ops',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedServicesRoute = AuthenticatedServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedShortcutsRoute = AuthenticatedShortcutsRouteImport.update({
+  id: '/shortcuts',
+  path: '/shortcuts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSolarFleetRoute = AuthenticatedSolarFleetRouteImport.update({
+  id: '/solar-fleet',
+  path: '/solar-fleet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStockRoute = AuthenticatedStockRouteImport.update({
+  id: '/stock',
+  path: '/stock',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStocktakeRoute = AuthenticatedStocktakeRouteImport.update({
+  id: '/stocktake',
+  path: '/stocktake',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSubscriptionsRoute =
+  AuthenticatedSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTreasuryRoute = AuthenticatedTreasuryRouteImport.update({
+  id: '/treasury',
+  path: '/treasury',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWarehouseCategoriesRoute =
+  AuthenticatedWarehouseCategoriesRouteImport.update({
+    id: '/warehouse-categories',
+    path: '/warehouse-categories',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWarehouseDeskRoute =
+  AuthenticatedWarehouseDeskRouteImport.update({
+    id: '/warehouse-desk',
+    path: '/warehouse-desk',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWarehousesRoute = AuthenticatedWarehousesRouteImport.update({
+  id: '/warehouses',
+  path: '/warehouses',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPosVoiceRoute = ApiPosVoiceRouteImport.update({
+  id: '/api/pos-voice',
+  path: '/api/pos-voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSolarFaultRoute = ApiSolarFaultRouteImport.update({
+  id: '/api/solar-fault',
+  path: '/api/solar-fault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolarTokenRoute = SolarTokenRouteImport.update({
+  id: '/solar/$token',
+  path: '/solar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAssistantIndexRoute =
+  AuthenticatedAssistantIndexRouteImport.update({
+    id: '/assistant/',
+    path: '/assistant/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssistantThreadIdRoute =
+  AuthenticatedAssistantThreadIdRouteImport.update({
+    id: '/assistant/$threadId',
+    path: '/assistant/$threadId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEmployeesEmployeeIdRoute =
+  AuthenticatedEmployeesEmployeeIdRouteImport.update({
+    id: '/employees/$employeeId',
+    path: '/employees/$employeeId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedJournalEntryIdRoute =
+  AuthenticatedJournalEntryIdRouteImport.update({
+    id: '/$entryId',
+    path: '/$entryId',
+    getParentRoute: () => AuthenticatedJournalRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdRoute =
+  AuthenticatedProjectsProjectIdRouteImport.update({
+    id: '/projects_/$projectId',
+    path: '/projects/$projectId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStatementPartnerIdRoute =
+  AuthenticatedStatementPartnerIdRouteImport.update({
+    id: '/statement/$partnerId',
+    path: '/statement/$partnerId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicBrandTenantIdRoute = ApiPublicBrandTenantIdRouteImport.update({
+  id: '/api/public/brand/$tenantId',
+  path: '/api/public/brand/$tenantId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksScheduledBackupRoute =
+  ApiPublicHooksScheduledBackupRouteImport.update({
+    id: '/api/public/hooks/scheduled-backup',
+    path: '/api/public/hooks/scheduled-backup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicJobsSolarFleetRoute = ApiPublicJobsSolarFleetRouteImport.update({
+  id: '/api/public/jobs/solar-fleet',
+  path: '/api/public/jobs/solar-fleet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/accounts': typeof AuthenticatedAccountsRoute
+  '/ai-drafts': typeof AuthenticatedAiDraftsRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
+  '/assembly': typeof AuthenticatedAssemblyRoute
+  '/assets': typeof AuthenticatedAssetsRoute
+  '/audit': typeof AuthenticatedAuditRoute
+  '/batches': typeof AuthenticatedBatchesRoute
+  '/chat': typeof AuthenticatedChatRoute
+  '/cheques': typeof AuthenticatedChequesRoute
+  '/collab': typeof AuthenticatedCollabRoute
+  '/companies': typeof AuthenticatedCompaniesRoute
+  '/cost-centers': typeof AuthenticatedCostCentersRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/doc-patterns': typeof AuthenticatedDocPatternsRoute
+  '/documents': typeof AuthenticatedDocumentsRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/hotel': typeof AuthenticatedHotelRoute
+  '/journal': typeof AuthenticatedJournalRouteWithChildren
+  '/ledgers': typeof AuthenticatedLedgersRoute
+  '/manual': typeof AuthenticatedManualRoute
+  '/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/notes': typeof AuthenticatedNotesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/opening-closing': typeof AuthenticatedOpeningClosingRoute
+  '/owner-dashboard': typeof AuthenticatedOwnerDashboardRoute
+  '/owner-finance': typeof AuthenticatedOwnerFinanceRoute
+  '/owner-reports': typeof AuthenticatedOwnerReportsRoute
+  '/partners': typeof AuthenticatedPartnersRoute
+  '/payroll': typeof AuthenticatedPayrollRoute
+  '/pos': typeof AuthenticatedPosRoute
+  '/pos-stations': typeof AuthenticatedPosStationsRoute
+  '/product-categories': typeof AuthenticatedProductCategoriesRoute
+  '/products': typeof AuthenticatedProductsRoute
+  '/project-board': typeof AuthenticatedProjectBoardRoute
+  '/project-categories': typeof AuthenticatedProjectCategoriesRoute
+  '/projects': typeof AuthenticatedProjectsRoute
+  '/purchase-pos': typeof AuthenticatedPurchasePosRoute
+  '/recipes': typeof AuthenticatedRecipesRoute
+  '/recurring': typeof AuthenticatedRecurringRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/service-ops': typeof AuthenticatedServiceOpsRoute
+  '/services': typeof AuthenticatedServicesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/shortcuts': typeof AuthenticatedShortcutsRoute
+  '/solar-fleet': typeof AuthenticatedSolarFleetRoute
+  '/stock': typeof AuthenticatedStockRoute
+  '/stocktake': typeof AuthenticatedStocktakeRoute
+  '/subscriptions': typeof AuthenticatedSubscriptionsRoute
+  '/support': typeof AuthenticatedSupportRoute
+  '/treasury': typeof AuthenticatedTreasuryRoute
+  '/users': typeof AuthenticatedUsersRoute
+  '/warehouse-categories': typeof AuthenticatedWarehouseCategoriesRoute
+  '/warehouse-desk': typeof AuthenticatedWarehouseDeskRoute
+  '/warehouses': typeof AuthenticatedWarehousesRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/pos-voice': typeof ApiPosVoiceRoute
+  '/api/solar-fault': typeof ApiSolarFaultRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/solar/$token': typeof SolarTokenRoute
+  '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/employees/$employeeId': typeof AuthenticatedEmployeesEmployeeIdRoute
+  '/journal/$entryId': typeof AuthenticatedJournalEntryIdRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/statement/$partnerId': typeof AuthenticatedStatementPartnerIdRoute
+  '/assistant/': typeof AuthenticatedAssistantIndexRoute
+  '/api/public/brand/$tenantId': typeof ApiPublicBrandTenantIdRoute
+  '/api/public/hooks/scheduled-backup': typeof ApiPublicHooksScheduledBackupRoute
+  '/api/public/jobs/solar-fleet': typeof ApiPublicJobsSolarFleetRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/accounts': typeof AuthenticatedAccountsRoute
+  '/ai-drafts': typeof AuthenticatedAiDraftsRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
+  '/assembly': typeof AuthenticatedAssemblyRoute
+  '/assets': typeof AuthenticatedAssetsRoute
+  '/audit': typeof AuthenticatedAuditRoute
+  '/batches': typeof AuthenticatedBatchesRoute
+  '/chat': typeof AuthenticatedChatRoute
+  '/cheques': typeof AuthenticatedChequesRoute
+  '/collab': typeof AuthenticatedCollabRoute
+  '/companies': typeof AuthenticatedCompaniesRoute
+  '/cost-centers': typeof AuthenticatedCostCentersRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/doc-patterns': typeof AuthenticatedDocPatternsRoute
+  '/documents': typeof AuthenticatedDocumentsRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/hotel': typeof AuthenticatedHotelRoute
+  '/journal': typeof AuthenticatedJournalRouteWithChildren
+  '/ledgers': typeof AuthenticatedLedgersRoute
+  '/manual': typeof AuthenticatedManualRoute
+  '/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/notes': typeof AuthenticatedNotesRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/opening-closing': typeof AuthenticatedOpeningClosingRoute
+  '/owner-dashboard': typeof AuthenticatedOwnerDashboardRoute
+  '/owner-finance': typeof AuthenticatedOwnerFinanceRoute
+  '/owner-reports': typeof AuthenticatedOwnerReportsRoute
+  '/partners': typeof AuthenticatedPartnersRoute
+  '/payroll': typeof AuthenticatedPayrollRoute
+  '/pos': typeof AuthenticatedPosRoute
+  '/pos-stations': typeof AuthenticatedPosStationsRoute
+  '/product-categories': typeof AuthenticatedProductCategoriesRoute
+  '/products': typeof AuthenticatedProductsRoute
+  '/project-board': typeof AuthenticatedProjectBoardRoute
+  '/project-categories': typeof AuthenticatedProjectCategoriesRoute
+  '/projects': typeof AuthenticatedProjectsRoute
+  '/purchase-pos': typeof AuthenticatedPurchasePosRoute
+  '/recipes': typeof AuthenticatedRecipesRoute
+  '/recurring': typeof AuthenticatedRecurringRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/service-ops': typeof AuthenticatedServiceOpsRoute
+  '/services': typeof AuthenticatedServicesRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/shortcuts': typeof AuthenticatedShortcutsRoute
+  '/solar-fleet': typeof AuthenticatedSolarFleetRoute
+  '/stock': typeof AuthenticatedStockRoute
+  '/stocktake': typeof AuthenticatedStocktakeRoute
+  '/subscriptions': typeof AuthenticatedSubscriptionsRoute
+  '/support': typeof AuthenticatedSupportRoute
+  '/treasury': typeof AuthenticatedTreasuryRoute
+  '/users': typeof AuthenticatedUsersRoute
+  '/warehouse-categories': typeof AuthenticatedWarehouseCategoriesRoute
+  '/warehouse-desk': typeof AuthenticatedWarehouseDeskRoute
+  '/warehouses': typeof AuthenticatedWarehousesRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/pos-voice': typeof ApiPosVoiceRoute
+  '/api/solar-fault': typeof ApiSolarFaultRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/solar/$token': typeof SolarTokenRoute
+  '/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/employees/$employeeId': typeof AuthenticatedEmployeesEmployeeIdRoute
+  '/journal/$entryId': typeof AuthenticatedJournalEntryIdRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/statement/$partnerId': typeof AuthenticatedStatementPartnerIdRoute
+  '/assistant': typeof AuthenticatedAssistantIndexRoute
+  '/api/public/brand/$tenantId': typeof ApiPublicBrandTenantIdRoute
+  '/api/public/hooks/scheduled-backup': typeof ApiPublicHooksScheduledBackupRoute
+  '/api/public/jobs/solar-fleet': typeof ApiPublicJobsSolarFleetRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
+  '/_authenticated/ai-drafts': typeof AuthenticatedAiDraftsRoute
+  '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
+  '/_authenticated/assembly': typeof AuthenticatedAssemblyRoute
+  '/_authenticated/assets': typeof AuthenticatedAssetsRoute
+  '/_authenticated/audit': typeof AuthenticatedAuditRoute
+  '/_authenticated/batches': typeof AuthenticatedBatchesRoute
+  '/_authenticated/chat': typeof AuthenticatedChatRoute
+  '/_authenticated/cheques': typeof AuthenticatedChequesRoute
+  '/_authenticated/collab': typeof AuthenticatedCollabRoute
+  '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
+  '/_authenticated/cost-centers': typeof AuthenticatedCostCentersRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/doc-patterns': typeof AuthenticatedDocPatternsRoute
+  '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/_authenticated/hotel': typeof AuthenticatedHotelRoute
+  '/_authenticated/journal': typeof AuthenticatedJournalRouteWithChildren
+  '/_authenticated/ledgers': typeof AuthenticatedLedgersRoute
+  '/_authenticated/manual': typeof AuthenticatedManualRoute
+  '/_authenticated/manufacturing': typeof AuthenticatedManufacturingRoute
+  '/_authenticated/notes': typeof AuthenticatedNotesRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/opening-closing': typeof AuthenticatedOpeningClosingRoute
+  '/_authenticated/owner-dashboard': typeof AuthenticatedOwnerDashboardRoute
+  '/_authenticated/owner-finance': typeof AuthenticatedOwnerFinanceRoute
+  '/_authenticated/owner-reports': typeof AuthenticatedOwnerReportsRoute
+  '/_authenticated/partners': typeof AuthenticatedPartnersRoute
+  '/_authenticated/payroll': typeof AuthenticatedPayrollRoute
+  '/_authenticated/pos': typeof AuthenticatedPosRoute
+  '/_authenticated/pos-stations': typeof AuthenticatedPosStationsRoute
+  '/_authenticated/product-categories': typeof AuthenticatedProductCategoriesRoute
+  '/_authenticated/products': typeof AuthenticatedProductsRoute
+  '/_authenticated/project-board': typeof AuthenticatedProjectBoardRoute
+  '/_authenticated/project-categories': typeof AuthenticatedProjectCategoriesRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
+  '/_authenticated/purchase-pos': typeof AuthenticatedPurchasePosRoute
+  '/_authenticated/recipes': typeof AuthenticatedRecipesRoute
+  '/_authenticated/recurring': typeof AuthenticatedRecurringRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/service-ops': typeof AuthenticatedServiceOpsRoute
+  '/_authenticated/services': typeof AuthenticatedServicesRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/shortcuts': typeof AuthenticatedShortcutsRoute
+  '/_authenticated/solar-fleet': typeof AuthenticatedSolarFleetRoute
+  '/_authenticated/stock': typeof AuthenticatedStockRoute
+  '/_authenticated/stocktake': typeof AuthenticatedStocktakeRoute
+  '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
+  '/_authenticated/treasury': typeof AuthenticatedTreasuryRoute
+  '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/_authenticated/warehouse-categories': typeof AuthenticatedWarehouseCategoriesRoute
+  '/_authenticated/warehouse-desk': typeof AuthenticatedWarehouseDeskRoute
+  '/_authenticated/warehouses': typeof AuthenticatedWarehousesRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/pos-voice': typeof ApiPosVoiceRoute
+  '/api/solar-fault': typeof ApiSolarFaultRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/solar/$token': typeof SolarTokenRoute
+  '/_authenticated/assistant/$threadId': typeof AuthenticatedAssistantThreadIdRoute
+  '/_authenticated/employees/$employeeId': typeof AuthenticatedEmployeesEmployeeIdRoute
+  '/_authenticated/journal/$entryId': typeof AuthenticatedJournalEntryIdRoute
+  '/_authenticated/projects_/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/_authenticated/statement/$partnerId': typeof AuthenticatedStatementPartnerIdRoute
+  '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
+  '/api/public/brand/$tenantId': typeof ApiPublicBrandTenantIdRoute
+  '/api/public/hooks/scheduled-backup': typeof ApiPublicHooksScheduledBackupRoute
+  '/api/public/jobs/solar-fleet': typeof ApiPublicJobsSolarFleetRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/accounts'
+    | '/ai-drafts'
+    | '/approvals'
+    | '/assembly'
+    | '/assets'
+    | '/audit'
+    | '/batches'
+    | '/chat'
+    | '/cheques'
+    | '/collab'
+    | '/companies'
+    | '/cost-centers'
+    | '/dashboard'
+    | '/doc-patterns'
+    | '/documents'
+    | '/home'
+    | '/hotel'
+    | '/journal'
+    | '/ledgers'
+    | '/manual'
+    | '/manufacturing'
+    | '/notes'
+    | '/notifications'
+    | '/opening-closing'
+    | '/owner-dashboard'
+    | '/owner-finance'
+    | '/owner-reports'
+    | '/partners'
+    | '/payroll'
+    | '/pos'
+    | '/pos-stations'
+    | '/product-categories'
+    | '/products'
+    | '/project-board'
+    | '/project-categories'
+    | '/projects'
+    | '/purchase-pos'
+    | '/recipes'
+    | '/recurring'
+    | '/reports'
+    | '/service-ops'
+    | '/services'
+    | '/settings'
+    | '/shortcuts'
+    | '/solar-fleet'
+    | '/stock'
+    | '/stocktake'
+    | '/subscriptions'
+    | '/support'
+    | '/treasury'
+    | '/users'
+    | '/warehouse-categories'
+    | '/warehouse-desk'
+    | '/warehouses'
+    | '/api/chat'
+    | '/api/pos-voice'
+    | '/api/solar-fault'
+    | '/api/transcribe'
+    | '/share/$token'
+    | '/solar/$token'
+    | '/assistant/$threadId'
+    | '/employees/$employeeId'
+    | '/journal/$entryId'
+    | '/projects/$projectId'
+    | '/statement/$partnerId'
+    | '/assistant/'
+    | '/api/public/brand/$tenantId'
+    | '/api/public/hooks/scheduled-backup'
+    | '/api/public/jobs/solar-fleet'
+    | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/accounts'
+    | '/ai-drafts'
+    | '/approvals'
+    | '/assembly'
+    | '/assets'
+    | '/audit'
+    | '/batches'
+    | '/chat'
+    | '/cheques'
+    | '/collab'
+    | '/companies'
+    | '/cost-centers'
+    | '/dashboard'
+    | '/doc-patterns'
+    | '/documents'
+    | '/home'
+    | '/hotel'
+    | '/journal'
+    | '/ledgers'
+    | '/manual'
+    | '/manufacturing'
+    | '/notes'
+    | '/notifications'
+    | '/opening-closing'
+    | '/owner-dashboard'
+    | '/owner-finance'
+    | '/owner-reports'
+    | '/partners'
+    | '/payroll'
+    | '/pos'
+    | '/pos-stations'
+    | '/product-categories'
+    | '/products'
+    | '/project-board'
+    | '/project-categories'
+    | '/projects'
+    | '/purchase-pos'
+    | '/recipes'
+    | '/recurring'
+    | '/reports'
+    | '/service-ops'
+    | '/services'
+    | '/settings'
+    | '/shortcuts'
+    | '/solar-fleet'
+    | '/stock'
+    | '/stocktake'
+    | '/subscriptions'
+    | '/support'
+    | '/treasury'
+    | '/users'
+    | '/warehouse-categories'
+    | '/warehouse-desk'
+    | '/warehouses'
+    | '/api/chat'
+    | '/api/pos-voice'
+    | '/api/solar-fault'
+    | '/api/transcribe'
+    | '/share/$token'
+    | '/solar/$token'
+    | '/assistant/$threadId'
+    | '/employees/$employeeId'
+    | '/journal/$entryId'
+    | '/projects/$projectId'
+    | '/statement/$partnerId'
+    | '/assistant'
+    | '/api/public/brand/$tenantId'
+    | '/api/public/hooks/scheduled-backup'
+    | '/api/public/jobs/solar-fleet'
+    | '/api/public/telegram/webhook'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/accounts'
+    | '/_authenticated/ai-drafts'
+    | '/_authenticated/approvals'
+    | '/_authenticated/assembly'
+    | '/_authenticated/assets'
+    | '/_authenticated/audit'
+    | '/_authenticated/batches'
+    | '/_authenticated/chat'
+    | '/_authenticated/cheques'
+    | '/_authenticated/collab'
+    | '/_authenticated/companies'
+    | '/_authenticated/cost-centers'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/doc-patterns'
+    | '/_authenticated/documents'
+    | '/_authenticated/home'
+    | '/_authenticated/hotel'
+    | '/_authenticated/journal'
+    | '/_authenticated/ledgers'
+    | '/_authenticated/manual'
+    | '/_authenticated/manufacturing'
+    | '/_authenticated/notes'
+    | '/_authenticated/notifications'
+    | '/_authenticated/opening-closing'
+    | '/_authenticated/owner-dashboard'
+    | '/_authenticated/owner-finance'
+    | '/_authenticated/owner-reports'
+    | '/_authenticated/partners'
+    | '/_authenticated/payroll'
+    | '/_authenticated/pos'
+    | '/_authenticated/pos-stations'
+    | '/_authenticated/product-categories'
+    | '/_authenticated/products'
+    | '/_authenticated/project-board'
+    | '/_authenticated/project-categories'
+    | '/_authenticated/projects'
+    | '/_authenticated/purchase-pos'
+    | '/_authenticated/recipes'
+    | '/_authenticated/recurring'
+    | '/_authenticated/reports'
+    | '/_authenticated/service-ops'
+    | '/_authenticated/services'
+    | '/_authenticated/settings'
+    | '/_authenticated/shortcuts'
+    | '/_authenticated/solar-fleet'
+    | '/_authenticated/stock'
+    | '/_authenticated/stocktake'
+    | '/_authenticated/subscriptions'
+    | '/_authenticated/support'
+    | '/_authenticated/treasury'
+    | '/_authenticated/users'
+    | '/_authenticated/warehouse-categories'
+    | '/_authenticated/warehouse-desk'
+    | '/_authenticated/warehouses'
+    | '/api/chat'
+    | '/api/pos-voice'
+    | '/api/solar-fault'
+    | '/api/transcribe'
+    | '/share/$token'
+    | '/solar/$token'
+    | '/_authenticated/assistant/$threadId'
+    | '/_authenticated/employees/$employeeId'
+    | '/_authenticated/journal/$entryId'
+    | '/_authenticated/projects_/$projectId'
+    | '/_authenticated/statement/$partnerId'
+    | '/_authenticated/assistant/'
+    | '/api/public/brand/$tenantId'
+    | '/api/public/hooks/scheduled-backup'
+    | '/api/public/jobs/solar-fleet'
+    | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ApiChatRoute: typeof ApiChatRoute
+  ApiPosVoiceRoute: typeof ApiPosVoiceRoute
+  ApiSolarFaultRoute: typeof ApiSolarFaultRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ShareTokenRoute: typeof ShareTokenRoute
+  SolarTokenRoute: typeof SolarTokenRoute
+  ApiPublicBrandTenantIdRoute: typeof ApiPublicBrandTenantIdRoute
+  ApiPublicHooksScheduledBackupRoute: typeof ApiPublicHooksScheduledBackupRoute
+  ApiPublicJobsSolarFleetRoute: typeof ApiPublicJobsSolarFleetRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +947,665 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/accounts': {
+      id: '/_authenticated/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AuthenticatedAccountsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ai-drafts': {
+      id: '/_authenticated/ai-drafts'
+      path: '/ai-drafts'
+      fullPath: '/ai-drafts'
+      preLoaderRoute: typeof AuthenticatedAiDraftsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/approvals': {
+      id: '/_authenticated/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof AuthenticatedApprovalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assembly': {
+      id: '/_authenticated/assembly'
+      path: '/assembly'
+      fullPath: '/assembly'
+      preLoaderRoute: typeof AuthenticatedAssemblyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assets': {
+      id: '/_authenticated/assets'
+      path: '/assets'
+      fullPath: '/assets'
+      preLoaderRoute: typeof AuthenticatedAssetsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/audit': {
+      id: '/_authenticated/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuthenticatedAuditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/batches': {
+      id: '/_authenticated/batches'
+      path: '/batches'
+      fullPath: '/batches'
+      preLoaderRoute: typeof AuthenticatedBatchesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chat': {
+      id: '/_authenticated/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AuthenticatedChatRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cheques': {
+      id: '/_authenticated/cheques'
+      path: '/cheques'
+      fullPath: '/cheques'
+      preLoaderRoute: typeof AuthenticatedChequesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/collab': {
+      id: '/_authenticated/collab'
+      path: '/collab'
+      fullPath: '/collab'
+      preLoaderRoute: typeof AuthenticatedCollabRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/companies': {
+      id: '/_authenticated/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof AuthenticatedCompaniesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cost-centers': {
+      id: '/_authenticated/cost-centers'
+      path: '/cost-centers'
+      fullPath: '/cost-centers'
+      preLoaderRoute: typeof AuthenticatedCostCentersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/doc-patterns': {
+      id: '/_authenticated/doc-patterns'
+      path: '/doc-patterns'
+      fullPath: '/doc-patterns'
+      preLoaderRoute: typeof AuthenticatedDocPatternsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/documents': {
+      id: '/_authenticated/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof AuthenticatedDocumentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hotel': {
+      id: '/_authenticated/hotel'
+      path: '/hotel'
+      fullPath: '/hotel'
+      preLoaderRoute: typeof AuthenticatedHotelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/journal': {
+      id: '/_authenticated/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof AuthenticatedJournalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ledgers': {
+      id: '/_authenticated/ledgers'
+      path: '/ledgers'
+      fullPath: '/ledgers'
+      preLoaderRoute: typeof AuthenticatedLedgersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manual': {
+      id: '/_authenticated/manual'
+      path: '/manual'
+      fullPath: '/manual'
+      preLoaderRoute: typeof AuthenticatedManualRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manufacturing': {
+      id: '/_authenticated/manufacturing'
+      path: '/manufacturing'
+      fullPath: '/manufacturing'
+      preLoaderRoute: typeof AuthenticatedManufacturingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notes': {
+      id: '/_authenticated/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof AuthenticatedNotesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/opening-closing': {
+      id: '/_authenticated/opening-closing'
+      path: '/opening-closing'
+      fullPath: '/opening-closing'
+      preLoaderRoute: typeof AuthenticatedOpeningClosingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/owner-dashboard': {
+      id: '/_authenticated/owner-dashboard'
+      path: '/owner-dashboard'
+      fullPath: '/owner-dashboard'
+      preLoaderRoute: typeof AuthenticatedOwnerDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/owner-finance': {
+      id: '/_authenticated/owner-finance'
+      path: '/owner-finance'
+      fullPath: '/owner-finance'
+      preLoaderRoute: typeof AuthenticatedOwnerFinanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/owner-reports': {
+      id: '/_authenticated/owner-reports'
+      path: '/owner-reports'
+      fullPath: '/owner-reports'
+      preLoaderRoute: typeof AuthenticatedOwnerReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/partners': {
+      id: '/_authenticated/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof AuthenticatedPartnersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/payroll': {
+      id: '/_authenticated/payroll'
+      path: '/payroll'
+      fullPath: '/payroll'
+      preLoaderRoute: typeof AuthenticatedPayrollRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pos': {
+      id: '/_authenticated/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof AuthenticatedPosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pos-stations': {
+      id: '/_authenticated/pos-stations'
+      path: '/pos-stations'
+      fullPath: '/pos-stations'
+      preLoaderRoute: typeof AuthenticatedPosStationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/product-categories': {
+      id: '/_authenticated/product-categories'
+      path: '/product-categories'
+      fullPath: '/product-categories'
+      preLoaderRoute: typeof AuthenticatedProductCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/products': {
+      id: '/_authenticated/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthenticatedProductsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/project-board': {
+      id: '/_authenticated/project-board'
+      path: '/project-board'
+      fullPath: '/project-board'
+      preLoaderRoute: typeof AuthenticatedProjectBoardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/project-categories': {
+      id: '/_authenticated/project-categories'
+      path: '/project-categories'
+      fullPath: '/project-categories'
+      preLoaderRoute: typeof AuthenticatedProjectCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/purchase-pos': {
+      id: '/_authenticated/purchase-pos'
+      path: '/purchase-pos'
+      fullPath: '/purchase-pos'
+      preLoaderRoute: typeof AuthenticatedPurchasePosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recipes': {
+      id: '/_authenticated/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof AuthenticatedRecipesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recurring': {
+      id: '/_authenticated/recurring'
+      path: '/recurring'
+      fullPath: '/recurring'
+      preLoaderRoute: typeof AuthenticatedRecurringRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/service-ops': {
+      id: '/_authenticated/service-ops'
+      path: '/service-ops'
+      fullPath: '/service-ops'
+      preLoaderRoute: typeof AuthenticatedServiceOpsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/services': {
+      id: '/_authenticated/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof AuthenticatedServicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/shortcuts': {
+      id: '/_authenticated/shortcuts'
+      path: '/shortcuts'
+      fullPath: '/shortcuts'
+      preLoaderRoute: typeof AuthenticatedShortcutsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/solar-fleet': {
+      id: '/_authenticated/solar-fleet'
+      path: '/solar-fleet'
+      fullPath: '/solar-fleet'
+      preLoaderRoute: typeof AuthenticatedSolarFleetRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/stock': {
+      id: '/_authenticated/stock'
+      path: '/stock'
+      fullPath: '/stock'
+      preLoaderRoute: typeof AuthenticatedStockRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/stocktake': {
+      id: '/_authenticated/stocktake'
+      path: '/stocktake'
+      fullPath: '/stocktake'
+      preLoaderRoute: typeof AuthenticatedStocktakeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/subscriptions': {
+      id: '/_authenticated/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof AuthenticatedSubscriptionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/treasury': {
+      id: '/_authenticated/treasury'
+      path: '/treasury'
+      fullPath: '/treasury'
+      preLoaderRoute: typeof AuthenticatedTreasuryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/users': {
+      id: '/_authenticated/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/warehouse-categories': {
+      id: '/_authenticated/warehouse-categories'
+      path: '/warehouse-categories'
+      fullPath: '/warehouse-categories'
+      preLoaderRoute: typeof AuthenticatedWarehouseCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/warehouse-desk': {
+      id: '/_authenticated/warehouse-desk'
+      path: '/warehouse-desk'
+      fullPath: '/warehouse-desk'
+      preLoaderRoute: typeof AuthenticatedWarehouseDeskRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/warehouses': {
+      id: '/_authenticated/warehouses'
+      path: '/warehouses'
+      fullPath: '/warehouses'
+      preLoaderRoute: typeof AuthenticatedWarehousesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pos-voice': {
+      id: '/api/pos-voice'
+      path: '/api/pos-voice'
+      fullPath: '/api/pos-voice'
+      preLoaderRoute: typeof ApiPosVoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/solar-fault': {
+      id: '/api/solar-fault'
+      path: '/api/solar-fault'
+      fullPath: '/api/solar-fault'
+      preLoaderRoute: typeof ApiSolarFaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/solar/$token': {
+      id: '/solar/$token'
+      path: '/solar/$token'
+      fullPath: '/solar/$token'
+      preLoaderRoute: typeof SolarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/assistant/': {
+      id: '/_authenticated/assistant/'
+      path: '/assistant'
+      fullPath: '/assistant/'
+      preLoaderRoute: typeof AuthenticatedAssistantIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assistant/$threadId': {
+      id: '/_authenticated/assistant/$threadId'
+      path: '/assistant/$threadId'
+      fullPath: '/assistant/$threadId'
+      preLoaderRoute: typeof AuthenticatedAssistantThreadIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/employees/$employeeId': {
+      id: '/_authenticated/employees/$employeeId'
+      path: '/employees/$employeeId'
+      fullPath: '/employees/$employeeId'
+      preLoaderRoute: typeof AuthenticatedEmployeesEmployeeIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/journal/$entryId': {
+      id: '/_authenticated/journal/$entryId'
+      path: '/$entryId'
+      fullPath: '/journal/$entryId'
+      preLoaderRoute: typeof AuthenticatedJournalEntryIdRouteImport
+      parentRoute: typeof AuthenticatedJournalRoute
+    }
+    '/_authenticated/projects_/$projectId': {
+      id: '/_authenticated/projects_/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/statement/$partnerId': {
+      id: '/_authenticated/statement/$partnerId'
+      path: '/statement/$partnerId'
+      fullPath: '/statement/$partnerId'
+      preLoaderRoute: typeof AuthenticatedStatementPartnerIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/brand/$tenantId': {
+      id: '/api/public/brand/$tenantId'
+      path: '/api/public/brand/$tenantId'
+      fullPath: '/api/public/brand/$tenantId'
+      preLoaderRoute: typeof ApiPublicBrandTenantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/scheduled-backup': {
+      id: '/api/public/hooks/scheduled-backup'
+      path: '/api/public/hooks/scheduled-backup'
+      fullPath: '/api/public/hooks/scheduled-backup'
+      preLoaderRoute: typeof ApiPublicHooksScheduledBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/jobs/solar-fleet': {
+      id: '/api/public/jobs/solar-fleet'
+      path: '/api/public/jobs/solar-fleet'
+      fullPath: '/api/public/jobs/solar-fleet'
+      preLoaderRoute: typeof ApiPublicJobsSolarFleetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedJournalRouteChildren {
+  AuthenticatedJournalEntryIdRoute: typeof AuthenticatedJournalEntryIdRoute
+}
+
+const AuthenticatedJournalRouteChildren: AuthenticatedJournalRouteChildren = {
+  AuthenticatedJournalEntryIdRoute: AuthenticatedJournalEntryIdRoute,
+}
+
+const AuthenticatedJournalRouteWithChildren =
+  AuthenticatedJournalRoute._addFileChildren(AuthenticatedJournalRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
+  AuthenticatedAiDraftsRoute: typeof AuthenticatedAiDraftsRoute
+  AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
+  AuthenticatedAssemblyRoute: typeof AuthenticatedAssemblyRoute
+  AuthenticatedAssetsRoute: typeof AuthenticatedAssetsRoute
+  AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
+  AuthenticatedBatchesRoute: typeof AuthenticatedBatchesRoute
+  AuthenticatedChatRoute: typeof AuthenticatedChatRoute
+  AuthenticatedChequesRoute: typeof AuthenticatedChequesRoute
+  AuthenticatedCollabRoute: typeof AuthenticatedCollabRoute
+  AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
+  AuthenticatedCostCentersRoute: typeof AuthenticatedCostCentersRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDocPatternsRoute: typeof AuthenticatedDocPatternsRoute
+  AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+  AuthenticatedHotelRoute: typeof AuthenticatedHotelRoute
+  AuthenticatedJournalRoute: typeof AuthenticatedJournalRouteWithChildren
+  AuthenticatedLedgersRoute: typeof AuthenticatedLedgersRoute
+  AuthenticatedManualRoute: typeof AuthenticatedManualRoute
+  AuthenticatedManufacturingRoute: typeof AuthenticatedManufacturingRoute
+  AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedOpeningClosingRoute: typeof AuthenticatedOpeningClosingRoute
+  AuthenticatedOwnerDashboardRoute: typeof AuthenticatedOwnerDashboardRoute
+  AuthenticatedOwnerFinanceRoute: typeof AuthenticatedOwnerFinanceRoute
+  AuthenticatedOwnerReportsRoute: typeof AuthenticatedOwnerReportsRoute
+  AuthenticatedPartnersRoute: typeof AuthenticatedPartnersRoute
+  AuthenticatedPayrollRoute: typeof AuthenticatedPayrollRoute
+  AuthenticatedPosRoute: typeof AuthenticatedPosRoute
+  AuthenticatedPosStationsRoute: typeof AuthenticatedPosStationsRoute
+  AuthenticatedProductCategoriesRoute: typeof AuthenticatedProductCategoriesRoute
+  AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
+  AuthenticatedProjectBoardRoute: typeof AuthenticatedProjectBoardRoute
+  AuthenticatedProjectCategoriesRoute: typeof AuthenticatedProjectCategoriesRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
+  AuthenticatedPurchasePosRoute: typeof AuthenticatedPurchasePosRoute
+  AuthenticatedRecipesRoute: typeof AuthenticatedRecipesRoute
+  AuthenticatedRecurringRoute: typeof AuthenticatedRecurringRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedServiceOpsRoute: typeof AuthenticatedServiceOpsRoute
+  AuthenticatedServicesRoute: typeof AuthenticatedServicesRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedShortcutsRoute: typeof AuthenticatedShortcutsRoute
+  AuthenticatedSolarFleetRoute: typeof AuthenticatedSolarFleetRoute
+  AuthenticatedStockRoute: typeof AuthenticatedStockRoute
+  AuthenticatedStocktakeRoute: typeof AuthenticatedStocktakeRoute
+  AuthenticatedSubscriptionsRoute: typeof AuthenticatedSubscriptionsRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedTreasuryRoute: typeof AuthenticatedTreasuryRoute
+  AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
+  AuthenticatedWarehouseCategoriesRoute: typeof AuthenticatedWarehouseCategoriesRoute
+  AuthenticatedWarehouseDeskRoute: typeof AuthenticatedWarehouseDeskRoute
+  AuthenticatedWarehousesRoute: typeof AuthenticatedWarehousesRoute
+  AuthenticatedAssistantThreadIdRoute: typeof AuthenticatedAssistantThreadIdRoute
+  AuthenticatedEmployeesEmployeeIdRoute: typeof AuthenticatedEmployeesEmployeeIdRoute
+  AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
+  AuthenticatedStatementPartnerIdRoute: typeof AuthenticatedStatementPartnerIdRoute
+  AuthenticatedAssistantIndexRoute: typeof AuthenticatedAssistantIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
+  AuthenticatedAiDraftsRoute: AuthenticatedAiDraftsRoute,
+  AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
+  AuthenticatedAssemblyRoute: AuthenticatedAssemblyRoute,
+  AuthenticatedAssetsRoute: AuthenticatedAssetsRoute,
+  AuthenticatedAuditRoute: AuthenticatedAuditRoute,
+  AuthenticatedBatchesRoute: AuthenticatedBatchesRoute,
+  AuthenticatedChatRoute: AuthenticatedChatRoute,
+  AuthenticatedChequesRoute: AuthenticatedChequesRoute,
+  AuthenticatedCollabRoute: AuthenticatedCollabRoute,
+  AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
+  AuthenticatedCostCentersRoute: AuthenticatedCostCentersRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDocPatternsRoute: AuthenticatedDocPatternsRoute,
+  AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+  AuthenticatedHotelRoute: AuthenticatedHotelRoute,
+  AuthenticatedJournalRoute: AuthenticatedJournalRouteWithChildren,
+  AuthenticatedLedgersRoute: AuthenticatedLedgersRoute,
+  AuthenticatedManualRoute: AuthenticatedManualRoute,
+  AuthenticatedManufacturingRoute: AuthenticatedManufacturingRoute,
+  AuthenticatedNotesRoute: AuthenticatedNotesRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedOpeningClosingRoute: AuthenticatedOpeningClosingRoute,
+  AuthenticatedOwnerDashboardRoute: AuthenticatedOwnerDashboardRoute,
+  AuthenticatedOwnerFinanceRoute: AuthenticatedOwnerFinanceRoute,
+  AuthenticatedOwnerReportsRoute: AuthenticatedOwnerReportsRoute,
+  AuthenticatedPartnersRoute: AuthenticatedPartnersRoute,
+  AuthenticatedPayrollRoute: AuthenticatedPayrollRoute,
+  AuthenticatedPosRoute: AuthenticatedPosRoute,
+  AuthenticatedPosStationsRoute: AuthenticatedPosStationsRoute,
+  AuthenticatedProductCategoriesRoute: AuthenticatedProductCategoriesRoute,
+  AuthenticatedProductsRoute: AuthenticatedProductsRoute,
+  AuthenticatedProjectBoardRoute: AuthenticatedProjectBoardRoute,
+  AuthenticatedProjectCategoriesRoute: AuthenticatedProjectCategoriesRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
+  AuthenticatedPurchasePosRoute: AuthenticatedPurchasePosRoute,
+  AuthenticatedRecipesRoute: AuthenticatedRecipesRoute,
+  AuthenticatedRecurringRoute: AuthenticatedRecurringRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedServiceOpsRoute: AuthenticatedServiceOpsRoute,
+  AuthenticatedServicesRoute: AuthenticatedServicesRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedShortcutsRoute: AuthenticatedShortcutsRoute,
+  AuthenticatedSolarFleetRoute: AuthenticatedSolarFleetRoute,
+  AuthenticatedStockRoute: AuthenticatedStockRoute,
+  AuthenticatedStocktakeRoute: AuthenticatedStocktakeRoute,
+  AuthenticatedSubscriptionsRoute: AuthenticatedSubscriptionsRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedTreasuryRoute: AuthenticatedTreasuryRoute,
+  AuthenticatedUsersRoute: AuthenticatedUsersRoute,
+  AuthenticatedWarehouseCategoriesRoute: AuthenticatedWarehouseCategoriesRoute,
+  AuthenticatedWarehouseDeskRoute: AuthenticatedWarehouseDeskRoute,
+  AuthenticatedWarehousesRoute: AuthenticatedWarehousesRoute,
+  AuthenticatedAssistantThreadIdRoute: AuthenticatedAssistantThreadIdRoute,
+  AuthenticatedEmployeesEmployeeIdRoute: AuthenticatedEmployeesEmployeeIdRoute,
+  AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
+  AuthenticatedStatementPartnerIdRoute: AuthenticatedStatementPartnerIdRoute,
+  AuthenticatedAssistantIndexRoute: AuthenticatedAssistantIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ApiChatRoute: ApiChatRoute,
+  ApiPosVoiceRoute: ApiPosVoiceRoute,
+  ApiSolarFaultRoute: ApiSolarFaultRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
+  ShareTokenRoute: ShareTokenRoute,
+  SolarTokenRoute: SolarTokenRoute,
+  ApiPublicBrandTenantIdRoute: ApiPublicBrandTenantIdRoute,
+  ApiPublicHooksScheduledBackupRoute: ApiPublicHooksScheduledBackupRoute,
+  ApiPublicJobsSolarFleetRoute: ApiPublicJobsSolarFleetRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
