@@ -50,6 +50,8 @@ function Fleet() {
   const [kindFilter, setKindFilter] = useState('all');
   const [govFilter, setGovFilter] = useState('all');
   const govOf = (projectId?: string | null) => (projectId && (data as any).governorates?.[projectId]) || '';
+  const gridOf = (projectId?: string | null) => (projectId && (data as any).gridModes?.[projectId]) || '';
+  const [gridFilter, setGridFilter] = useState('all');
   const [sort,setSort] = useState('name');
   const [descending,setDescending] = useState(false);
   const visible = sortSolarRows(data.stations.filter(s => {
@@ -58,7 +60,7 @@ function Fleet() {
     const project = data.projects.find(p => p.id === monitor?.project_id);
     const gov = govOf(monitor?.project_id);
     const text = `${s.name} ${s.plant_id} ${project?.name || ''} ${gov}`.toLowerCase();
-    return (govFilter === 'all' || (govFilter === 'none' ? !gov : gov === govFilter)) && text.includes(search.toLowerCase().trim()) && (providerFilter === 'all' || s.provider === providerFilter) && (kindFilter === 'all' || ((s as any).plant_kind ?? reading?.extra?.plant_kind) === kindFilter) && (linked === 'all' || (linked === 'linked' ? !!monitor : !monitor)) && (status === 'all' || (status === 'stale' ? !!reading && isStale(reading.at, new Date()) : status === 'alarms' ? !!reading?.alarms.length : status === 'none' ? !reading : reading?.status === status));
+    return (gridFilter === 'all' || (gridFilter === 'none' ? !gridOf(monitor?.project_id) : gridOf(monitor?.project_id) === gridFilter)) && (govFilter === 'all' || (govFilter === 'none' ? !gov : gov === govFilter)) && text.includes(search.toLowerCase().trim()) && (providerFilter === 'all' || s.provider === providerFilter) && (kindFilter === 'all' || ((s as any).plant_kind ?? reading?.extra?.plant_kind) === kindFilter) && (linked === 'all' || (linked === 'linked' ? !!monitor : !monitor)) && (status === 'all' || (status === 'stale' ? !!reading && isStale(reading.at, new Date()) : status === 'alarms' ? !!reading?.alarms.length : status === 'none' ? !reading : reading?.status === status));
   }),s => {
     const m = data.monitors.find(m => m.fleet_station_id === s.id);
     const r = stationReading(data,s.id);
@@ -105,7 +107,7 @@ function Fleet() {
           const monitor = data.monitors.find(m => m.fleet_station_id === station.id);
           return <div key={station.id} className="grid gap-3 py-4 md:grid-cols-[auto_1fr_1fr_1fr]">
             <Checkbox className="mt-1" aria-label={`تحديد ${station.name}`} checked={selected.includes(station.id)} onCheckedChange={c => setSelected(prev => c === true ? [...prev, station.id] : prev.filter(id => id !== station.id))} />
-            <div className="min-w-0"><p className="break-words font-semibold">{station.name}</p>{(() => { const k = (station as any).plant_kind ?? stationReading(data, station.id)?.extra?.plant_kind; return k ? <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">{plantKindLabel(k)}</span> : null; })()}{govOf(monitor?.project_id) && <span className="ms-1 mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">📍 {govOf(monitor?.project_id)}</span>}<p className="text-xs text-muted-foreground" dir="ltr">{station.provider === 'sma' ? 'SMA' : 'Sungrow'} · {station.plant_id} · {station.capacity_kwp} kWp</p></div>
+            <div className="min-w-0"><p className="break-words font-semibold">{station.name}</p>{(() => { const k = (station as any).plant_kind ?? stationReading(data, station.id)?.extra?.plant_kind; return k ? <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">{plantKindLabel(k)}</span> : null; })()}{govOf(monitor?.project_id) && <span className="ms-1 mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">📍 {govOf(monitor?.project_id)}</span>}{gridOf(monitor?.project_id) && <span className="ms-1 mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">{gridOf(monitor?.project_id) === 'feed_in' ? '⚡ يورّد للشبكة' : '🏭 لا يورّد للشبكة'}</span>}<p className="text-xs text-muted-foreground" dir="ltr">{station.provider === 'sma' ? 'SMA' : 'Sungrow'} · {station.plant_id} · {station.capacity_kwp} kWp</p></div>
             <Select value={monitor?.project_id || 'none'} disabled={!can(me,'projects','edit') || busy !== null} onValueChange={projectId => { if (projectId === 'new') { const name = window.prompt('اسم المشروع الجديد', station.name); if (name?.trim()) void run(station.id, async () => { await createFor({ data: { stationIds: [station.id], name: name.trim() } }); toast.success('تم إنشاء المشروع وربط المحطة'); }); return; } void run(station.id, () => bind({ data: { stationId: station.id, projectId: projectId === 'none' ? null : projectId } })); }}>
               <SelectTrigger aria-label={`${label('مشروع المحطة', 'Station Project')} ${station.name}`}><SelectValue placeholder={label('اختر المشروع', 'Select Project')} /></SelectTrigger>
               <SelectContent><SelectItem value="none">{label('غير مرتبط', 'Unlinked')}</SelectItem>{can(me,'projects','create') && <SelectItem value="new">+ {label('إنشاء مشروع جديد', 'Create new project')}</SelectItem>}{data.projects.map(project => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
