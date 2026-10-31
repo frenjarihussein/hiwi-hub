@@ -126,7 +126,7 @@ export function formatReport(kind: ReportKind, rows: Row[]) {
     const e = ex(d);
     const money = n(e["today_income"]) ? `\nعائد اليوم ${n(e["today_income"]).toFixed(2)} ${esc(String(e["currency"] ?? ""))}` : "";
     const counts = `الإنذارات: ${n(e["alarm_count"]) || (Array.isArray(d['alarms']) ? d['alarms'].length : 0)} · الأعطال: ${n(e["fault_count"])}`;
-    const grid = e["grid"] === "disconnected" ? " · ⚪ غير متصل بالإنترنت" : e["grid"] ? (n(d["power_kw"]) > 0 ? " · 🔌 يورّد للشبكة" : " · 🔌 لا يورّد للشبكة") : "";
+    const grid = e["grid"] === "disconnected" ? " · ⚪ غير متصل بالإنترنت" : e["grid_mode"] === "zero_export" ? " · 🏭 استهلاك ذاتي (لا يورّد للشبكة)" : e["grid_mode"] === "feed_in" ? " · ⚡ يورّد للشبكة" : "";
     const invCount = Array.isArray(d['electrical']) ? (d['electrical'] as ElectricalDevice[]).filter(x => x.kind === 'inverter').length : 0;
     return `<b>${esc(r.name)}</b>${tag}\n${STATUS_AR[String(d["status"])] ?? "—"}${stale} · ${n(d["power_kw"]).toFixed(2)} kW${grid}\nاليوم ${today.toFixed(1)} kWh\nالإنتاج الكلي ${n(d['total_kwh']).toFixed(1)} kWh · عدد الإنفرترات ${invCount || 1}${money}${(() => { const fl = energyFlow(d['electrical'] as ElectricalDevice[] | undefined, n(d['power_kw'])); return fl ? `\n🏠 استهلاك ${fl.load_kw} kW · ${fl.grid_kw >= 0 ? 'سحب من الشبكة' : 'توريد للشبكة'} ${Math.abs(fl.grid_kw)} kW` : ''; })()}\n${counts}${Array.isArray(d['electrical']) && d['electrical'].length ? '\n⚡ ' + electricalLines(d['electrical'] as ElectricalDevice[]).map(esc).join('\n') : ''}\nآخر قراءة: ${when}`;
   });
