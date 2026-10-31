@@ -1,7 +1,10 @@
 /** Server-only resolution of provider credentials: company settings first, then platform secrets. */
-export type IntegrationConfig = { appkey?: string; secret?: string; user?: string; pass?: string; base?: string; bot_token?: string; username?: string };
+export type IntegrationConfig = { appkey?: string; secret?: string; user?: string; pass?: string; base?: string; bot_token?: string; username?: string; client_id?: string; auth?: string };
 export type SungrowEnv = { appkey: string; secret: string; user: string; pass: string; base: string };
+export type IntegrationProvider = 'sungrow' | 'telegram' | 'sma';
 const DEFAULT_SUNGROW_BASE = 'https://gateway.isolarcloud.com.hk';
+export const DEFAULT_SMA_BASE = 'https://monitoring.smaapis.de';
+export const DEFAULT_SMA_AUTH = 'https://auth.smaapis.de/oauth2/token';
 
 async function admin() {
   const { appDatabaseAdmin } = await import('@/lib/app-database.server');
@@ -9,7 +12,7 @@ async function admin() {
   return appDatabaseAdmin as unknown as import('@supabase/supabase-js').SupabaseClient;
 }
 
-export async function readIntegration(tenantId: string | null, provider: 'sungrow' | 'telegram') {
+export async function readIntegration(tenantId: string | null, provider: IntegrationProvider) {
   const db = await admin();
   let q = db.from('tenant_integrations').select('config').eq('provider', provider);
   q = tenantId ? q.eq('tenant_id', tenantId) : q.is('tenant_id', null);
@@ -17,7 +20,7 @@ export async function readIntegration(tenantId: string | null, provider: 'sungro
   return (data?.config ?? {}) as IntegrationConfig;
 }
 
-export async function writeIntegration(tenantId: string | null, provider: 'sungrow' | 'telegram', config: IntegrationConfig) {
+export async function writeIntegration(tenantId: string | null, provider: IntegrationProvider, config: IntegrationConfig) {
   const db = await admin();
   let q = db.from('tenant_integrations').select('id').eq('provider', provider);
   q = tenantId ? q.eq('tenant_id', tenantId) : q.is('tenant_id', null);
@@ -26,6 +29,17 @@ export async function writeIntegration(tenantId: string | null, provider: 'sungr
     ? await db.from('tenant_integrations').update({ config, updated_at: new Date().toISOString() }).eq('id', existing.id)
     : await db.from('tenant_integrations').insert({ tenant_id: tenantId, provider, config });
   if (res.error) throw new Error('تعذر حفظ إعدادات الربط');
+}
+
+/** The company's own SMA credentials when complete, otherwise the platform SMA secrets. */
+export async function smaEnvFor(tenantId: string | null): Promise<{ id: string; secret: string; base: string; auth: string; own: boolean }> {
+  if (tenantId) {
+    const c = await readIntegration(tenantId, 'sma');
+    if (c.client_id && c.secret) return { id: c.client_id, secret: c.secret, base: c.base || DEFAULT_SMA_BASE, auth: c.auth || DEFAULT_SMA_AUTH, own: true };
+  }
+  const id = process.env['SMA_CLIENT_ID'], secret = process.env['SMA_CLIENT_SECRET'];
+  if (!id || !secret) throw new Error('SMA connection settings are incomplete.');
+  return { id, secret, base: process.env['SMA_BASE_URL'] || DEFAULT_SMA_BASE, auth: process.env['SMA_AUTH_URL'] || DEFAULT_SMA_AUTH, own: false };
 }
 
 /** Returns the company's own Sungrow credentials when complete, otherwise the platform credentials. */
