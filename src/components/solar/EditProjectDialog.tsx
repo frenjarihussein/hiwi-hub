@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SYRIA_GOVERNORATES } from "@/lib/syria-governorates";
 
-type Form = { name: string; code: string; contact: string; phone: string; factory: string; site: string; location: string; address: string; maps: string; start: string; end: string; notes: string };
+type Form = { name: string; code: string; contact: string; phone: string; factory: string; site: string; location: string; address: string; maps: string; gov: string; start: string; end: string; notes: string };
 
 /** Rename a project and edit its contact, site and factory details; survey keys stay shared with the site-survey form. */
 export function EditProjectDialog({ row, onClose }: { row: { id: string; name: string }; onClose: () => void }) {
@@ -30,7 +31,7 @@ export function EditProjectDialog({ row, onClose }: { row: { id: string; name: s
       setF({
         name: p?.name ?? row.name, code: p?.code ?? "", contact: p?.lead_contact ?? sv.owner_name ?? sv.client_name ?? "",
         phone: p?.lead_phone ?? sv.phones ?? sv.client_phone ?? "", factory: sv.factory_name ?? "", site: sv.site_type ?? "",
-        location: sv.location ?? "", address: sv.address ?? "", maps: sv.maps_url ?? "",
+        location: sv.location ?? "", address: sv.address ?? "", maps: sv.maps_url ?? "", gov: sv.governorate ?? "",
         start: p?.start_date ?? "", end: p?.end_date ?? "", notes: p?.notes ?? "",
       });
     })();
@@ -47,7 +48,7 @@ export function EditProjectDialog({ row, onClose }: { row: { id: string; name: s
         start_date: f.start || null, end_date: f.end || null, notes: f.notes.trim() || null,
       }).eq("id", row.id);
       if (error) throw error;
-      const next = { ...survey, owner_name: f.contact.trim(), client_name: f.contact.trim(), phones: f.phone.trim(), client_phone: f.phone.trim(), factory_name: f.factory.trim(), site_type: f.site.trim(), location: f.location.trim(), address: f.address.trim(), maps_url: f.maps.trim() };
+      const next = { ...survey, owner_name: f.contact.trim(), client_name: f.contact.trim(), phones: f.phone.trim(), client_phone: f.phone.trim(), factory_name: f.factory.trim(), site_type: f.site.trim(), location: f.location.trim(), address: f.address.trim(), maps_url: f.maps.trim(), governorate: f.gov || null };
       const { error: e2 } = await (db.from("solar_projects") as any).upsert({ project_id: row.id, tenant_id: me.tenantId, survey: next }, { onConflict: "project_id" });
       if (e2) throw e2;
       toast.success("تم حفظ بيانات المشروع");
@@ -78,7 +79,11 @@ export function EditProjectDialog({ row, onClose }: { row: { id: string; name: s
               {fld("location", "المدينة / المنطقة")}
               {fld("address", "العنوان بالتفصيل")}
               {fld("maps", "رابط الموقع على الخريطة", { dir: "ltr" })}
-              <div />
+              <label className="space-y-1 text-sm"><span className="block">المحافظة</span>
+                <select className="h-9 w-full rounded-md border bg-background px-2" value={f.gov} onChange={(e) => setF({ ...f, gov: e.target.value })}>
+                  <option value="">— اختر المحافظة —</option>
+                  {SYRIA_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select></label>
               {fld("start", "تاريخ البداية", { type: "date" })}
               {fld("end", "تاريخ التسليم", { type: "date" })}
             </div>

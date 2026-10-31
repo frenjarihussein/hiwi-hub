@@ -1,3 +1,4 @@
+import { SYRIA_GOVERNORATES } from "@/lib/syria-governorates";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ export function NewProjectWizard({ open, onClose }: { open: boolean; onClose: ()
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [f, setF] = useState({ name: "", code: "", client: "", phone: "", location: "", site: "", start: today(), end: "", value: "", currency: "USD", capacity: "", grid: "no", color: COLORS[0]!, notes: "" });
+  const [f, setF] = useState({ name: "", code: "", client: "", phone: "", location: "", gov: "", site: "", start: today(), end: "", value: "", currency: "USD", capacity: "", grid: "no", color: COLORS[0]!, notes: "" });
   const [tplKey, setTplKey] = useState("solar_industrial");
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
 
@@ -68,7 +69,7 @@ export function NewProjectWizard({ open, onClose }: { open: boolean; onClose: ()
       }
       const { error: e3 } = await db.from("solar_projects").upsert({
         project_id: id, tenant_id: me.tenantId,
-        survey: { template: tpl.key, template_name: tpl.name, client_name: f.client, client_phone: f.phone, location: f.location, site_type: f.site, capacity: f.capacity, export_to_grid: grid ? "yes" : "no" },
+        survey: { template: tpl.key, template_name: tpl.name, client_name: f.client, client_phone: f.phone, location: f.location, governorate: f.gov || null, site_type: f.site, capacity: f.capacity, export_to_grid: grid ? "yes" : "no" },
       }, { onConflict: "project_id" });
       if (e3) throw e3;
       toast.success("تم إنشاء المشروع وبناء مراحله");
@@ -102,6 +103,7 @@ export function NewProjectWizard({ open, onClose }: { open: boolean; onClose: ()
             <F l="العميل / الجهة"><Input value={f.client} onChange={set("client")} /></F>
             <F l="رقم الهاتف"><Input value={f.phone} onChange={set("phone")} dir="ltr" /></F>
             <F l="الموقع"><Input value={f.location} onChange={set("location")} placeholder="المدينة / المنطقة" /></F>
+            <F l="المحافظة"><select className="h-9 w-full rounded-md border bg-background px-2 text-sm" value={f.gov} onChange={set("gov")}><option value="">— اختر المحافظة —</option>{SYRIA_GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}</select></F>
             <F l="نوع المنشأة"><Input value={f.site} onChange={set("site")} placeholder="منزل، معمل، مزرعة، بئر…" /></F>
             <F l="تاريخ البداية"><Input type="date" value={f.start} onChange={set("start")} /></F>
             <F l="تاريخ التسليم المتوقع"><Input type="date" value={f.end} onChange={set("end")} /></F>

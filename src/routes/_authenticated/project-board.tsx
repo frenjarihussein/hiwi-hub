@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { CalendarDays, CheckCircle2, HardHat, LayoutGrid, Palette, PauseCircle, Pencil, Plus, Search, Timer, Trash2, Users } from "lucide-react";
 import { EditProjectDialog } from "@/components/solar/EditProjectDialog";
+import { SYRIA_GOVERNORATES } from "@/lib/syria-governorates";
 import { appDatabase as supabase } from "@/lib/app-database-client";
 import { db } from "@/lib/db";
 import { can, useMe } from "@/lib/session";
@@ -160,6 +161,13 @@ function Projects() {
     const r = await (db.from('project_snags') as any).select('project_id,status').eq('tenant_id',me!.tenantId).neq('status','closed');
     return (r.data ?? []) as { project_id: string }[];
   } });
+  const govs = useQuery({ queryKey:['projects','board-govs',me?.tenantId],enabled:!!me?.tenantId,queryFn:async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await (db.from('solar_projects') as any).select('project_id,survey').eq('tenant_id',me!.tenantId);
+    return Object.fromEntries(((r.data ?? []) as { project_id: string; survey: { governorate?: string } | null }[]).map(x => [x.project_id, x.survey?.governorate ?? ''])) as Record<string, string>;
+  } });
+  const govOf = (id: string) => govs.data?.[id] || '';
+  const [gov, setGov] = useState('');
   const [kind, setKind] = useState<'all' | 'ess' | 'ongrid'>('all');
   const [health, setHealth] = useState<'all' | Health>('all');
   const kindOf = (id: string) => { const m = monitoring.data?.find(x => x.project_id === id); if (!m) return null; return m.solar_fleet_stations?.plant_kind ?? (matchingReading(m.last_data,m.demo,m.provider)?.extra?.plant_kind ?? null); };
@@ -167,7 +175,7 @@ function Projects() {
   const rows = list.data ?? [];
   const cats = useProjectCategories(me?.tenantId).data ?? [];
   const inCat = useMemo(() => (cat ? categoryDescendants(cats, cat) : null), [cats, cat]);
-  const shown = sortSolarRows(rows.filter((r) => (tab === "all" || r.status === tab) && (kind === 'all' || kindOf(r.id) === kind) && (health === 'all' || healthOf(r.id) === health) && (!inCat || (!!r.parent_id && inCat.has(r.parent_id))) && (!q || `${r.name} ${r.code ?? ""}`.includes(q))),r => {
+  const shown = sortSolarRows(rows.filter((r) => (tab === "all" || r.status === tab) && (!gov || (gov === '__none' ? !govOf(r.id) : govOf(r.id) === gov)) && (kind === 'all' || kindOf(r.id) === kind) && (health === 'all' || healthOf(r.id) === health) && (!inCat || (!!r.parent_id && inCat.has(r.parent_id))) && (!q || `${r.name} ${r.code ?? ""}`.includes(q))),r => {
     const m = monitoring.data?.find(m => m.project_id === r.id);
     const reading = m ? matchingReading(m.last_data,m.demo,m.provider) : null;
     return sort === 'capacity' ? (m ? Number(m.capacity_kwp) : null) : sort === 'power' ? reading?.power_kw : sort === 'today' ? reading?.today_kwh : sort === 'month' ? reading?.month_kwh : sort === 'total' ? reading?.total_kwh : sort === 'updated' ? m?.last_sync : sort === 'status' ? r.status : sort === 'completion' ? Number(r.completion_pct) : r.name;
@@ -233,6 +241,11 @@ function Projects() {
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {(['all', ...HEALTHS] as const).map((k) => <Button key={k} size="sm" className="shrink-0" variant={health === k ? "default" : "outline"} onClick={() => setHealth(k)}>{k === 'all' ? 'كل حالات التشغيل' : HEALTH_LABEL[k]} ({k === 'all' ? rows.length : rows.filter(r => healthOf(r.id) === k).length})</Button>)}
         </div>
+        <select aria-label="المحافظة" className="h-9 rounded-md border bg-background px-2 text-sm" value={gov} onChange={(e) => setGov(e.target.value)}>
+          <option value="">كل المحافظات ({rows.length})</option>
+          {SYRIA_GOVERNORATES.map((g) => <option key={g} value={g}>{g} ({rows.filter(r => govOf(r.id) === g).length})</option>)}
+          <option value="__none">بلا محافظة ({rows.filter(r => !govOf(r.id)).length})</option>
+        </select>
         <div className="flex w-full gap-2 lg:ms-auto lg:w-72">
           <CategorySelect cats={cats} value={cat} onChange={setCat} placeholder="كل التصنيفات" />
           {canAdd && <Button size="icon" variant="outline" className="shrink-0" aria-label="إدارة التصنيفات" title="إدارة التصنيفات" onClick={() => setCatsOpen(true)}><FolderTree className="size-4" /></Button>}
