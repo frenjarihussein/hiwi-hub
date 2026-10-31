@@ -7,7 +7,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { CalendarDays, CheckCircle2, HardHat, LayoutGrid, Palette, PauseCircle, Plus, Search, Timer, Trash2, Users } from "lucide-react";
+import { CalendarDays, CheckCircle2, HardHat, LayoutGrid, Palette, PauseCircle, Pencil, Plus, Search, Timer, Trash2, Users } from "lucide-react";
+import { EditProjectDialog } from "@/components/solar/EditProjectDialog";
 import { appDatabase as supabase } from "@/lib/app-database-client";
 import { db } from "@/lib/db";
 import { can, useMe } from "@/lib/session";
@@ -102,6 +103,7 @@ function Projects() {
   const [q, setQ] = useState("");
   const [sort,setSort] = useState("name"), [descending,setDescending] = useState(false);
   const [brandOf, setBrandOf] = useState<Row | null>(null);
+  const [editOf, setEditOf] = useState<Row | null>(null);
   const [wizard, setWizard] = useState(false);
   const [cat, setCat] = useState("");
   const [catsOpen, setCatsOpen] = useState(false);
@@ -315,7 +317,8 @@ function Projects() {
                       {STATUSES.map((s) => <option key={s} value={s}>{PROJECT_STATUS_LABEL[s]}</option>)}
                     </select>
                   ) : <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TONE[r.status] ?? ""}`}>{PROJECT_STATUS_LABEL[r.status] ?? r.status}</span>}
-                  {canEdit && <Button size="icon" variant="ghost" className="ms-auto size-7" title="هوية المشروع" onClick={() => setBrandOf(r)}><Palette className="size-4" /></Button>}
+                  {canEdit && <Button size="icon" variant="ghost" className="ms-auto size-7" title="تعديل بيانات المشروع" aria-label="تعديل بيانات المشروع" onClick={() => setEditOf(r)}><Pencil className="size-4" /></Button>}
+                  {canEdit && <Button size="icon" variant="ghost" className="size-7" title="هوية المشروع" onClick={() => setBrandOf(r)}><Palette className="size-4" /></Button>}
                 </div>
               </div>
             );
@@ -323,6 +326,7 @@ function Projects() {
         </div>
       )}
       {brandOf && <BrandDialog row={brandOf} onClose={() => { setBrandOf(null); void refresh(); }} />}
+      {editOf && <EditProjectDialog row={editOf} onClose={() => { setEditOf(null); void refresh(); }} />}
       <NewProjectWizard open={wizard} onClose={() => setWizard(false)} />
       <ProjectLeads />
     </div>
