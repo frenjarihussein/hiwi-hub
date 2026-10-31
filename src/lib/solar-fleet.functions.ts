@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { requireAppDatabaseAuth } from '@/lib/app-database-auth';
 import { z } from 'zod';
 import { memberPreferencesSchema } from './telegram-preferences';
+import { syncMinutes, SOLAR_SYNC_MINUTES } from './solar-sync-policy';
 
 export const getSolarFleet = createServerFn({ method: 'GET' }).middleware([requireAppDatabaseAuth]).handler(async ({ context }) => {
   const [stations, projects, monitors, members] = await Promise.all([
@@ -257,7 +258,7 @@ export const getIntegrationSettings = createServerFn({ method: 'GET' }).middlewa
   const sm = await readIntegration(tenantId, 'sma');
   const platform = await readIntegration(null, 'telegram').catch(() => ({} as import('./integrations.server').IntegrationConfig));
   return {
-    sungrow: { appkey: sg.appkey || '', user: sg.user || '', base: sg.base || '', hasSecret: Boolean(sg.secret), hasPass: Boolean(sg.pass), own: Boolean(sg.appkey && sg.secret && sg.user && sg.pass) },
+    sungrow: { appkey: sg.appkey || '', user: sg.user || '', base: sg.base || '', hasSecret: Boolean(sg.secret), hasPass: Boolean(sg.pass), own: Boolean(sg.appkey && sg.secret && sg.user && sg.pass), syncMinutes: syncMinutes(sg.sync_minutes) },
     sma: { client_id: sm.client_id || '', base: sm.base || '', auth: sm.auth || '', hasSecret: Boolean(sm.secret), own: Boolean(sm.client_id && sm.secret) },
     telegram: { canEdit: true, hasToken: Boolean(tg.bot_token), username: tg.username || '', platformUsername: platform.username || 'KFP_solar_bot', isPlatformOwner: owner },
   };
@@ -269,7 +270,7 @@ export const saveSungrowSettings = createServerFn({ method: 'POST' }).middleware
     const { readIntegration, writeIntegration } = await import('./integrations.server');
     if (data.clear) { await writeIntegration(tenantId, 'sungrow', {}); return { ok: true }; }
     const old = await readIntegration(tenantId, 'sungrow');
-    const next: Record<string, string | undefined> = { appkey: data.appkey, user: data.user, base: data.base, secret: data.secret || old.secret || '', pass: data.pass || old.pass || '' };
+    const next = { ...old, appkey: data.appkey, user: data.user, base: data.base, secret: data.secret || old.secret || '', pass: data.pass || old.pass || '' };
     for (const k of sgFields) if (!next[k]) delete next[k];
     await writeIntegration(tenantId, 'sungrow', next as import('./integrations.server').IntegrationConfig);
     return { ok: true };
@@ -283,6 +284,22 @@ export const testSungrowSettings = createServerFn({ method: 'POST' }).middleware
     const stations = await discoverStations('sungrow', env);
     return { ok: true, own: env.own, stations: stations.length, message: '' };
   } catch (e) { return { ok: false, own: false, stations: 0, message: e instanceof Error ? e.message : 'فشل الاتصال' }; }
+});
+export const saveSungrowSyncInterval = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
+  .inputValidator((d: unknown) => z.object({ minutes: z.number().refine(n => SOLAR_SYNC_MINUTES.some(m => m === n)) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { tenantId } = await integrationGuard(context);
+    const { readIntegration, writeIntegration } = await import('./integrations.server');
+    await writeIntegration(tenantId, 'sungrow', { ...await readIntegration(tenantId, 'sungrow'), sync_minutes: data.minutes });
+    return { ok: true };
+  });
+/** Return only projects accessible to this administrator; manual reads retain project RLS. */
+export const getSungrowSyncProjects = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth]).handler(async ({ context }) => {
+  const { tenantId } = await integrationGuard(context);
+  const result = await context.supabase.from('solar_monitoring').select('project_id,plant_id,projects(name)')
+    .eq('tenant_id', tenantId).eq('provider', 'sungrow').eq('demo', false);
+  if (result.error) throw new Error('تعذر تحميل المحطات المرتبطة');
+  return (result.data || []).map(m => ({ projectId: m.project_id, name: m.projects?.name || m.plant_id || 'محطة' }));
 });
 /** Company SMA (Sunny Portal / ennexOS) API credentials; the secret is write-only. */
 export const saveSmaSettings = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
