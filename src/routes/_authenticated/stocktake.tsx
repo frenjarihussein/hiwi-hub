@@ -46,7 +46,7 @@ function StocktakePage() {
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [date, setDate] = useState(today());
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [stReason, setStReason] = useState(ST_REASONS[0]);
+  const [stReason, setStReason] = useState<string>(ST_REASONS[0]!);
   const [stNotes, setStNotes] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [acc, setAcc] = useState<{ inv?: string; short?: string; surplus?: string }>({});
@@ -96,7 +96,7 @@ function StocktakePage() {
         throw new Error("حدد حساب المخزون وحساب عجز الجرد وحساب زيادة الجرد");
       const cur = baseCur ?? "USD";
       // 1) the stocktake document (numbered by the server) with every counted line
-      const notes = packNotes(stReason, stNotes);
+      const notes = packNotes(stReason ?? "", stNotes);
       const { data: doc, error: de } = editId
         ? await db.from("documents").update({ doc_date: date, warehouse_id: wh, notes }).eq("id", editId).select("id,doc_no").single()
         : await db.from("documents").insert({ tenant_id: me!.tenantId, doc_type: "stocktake", doc_date: date, currency: cur, exchange_rate: 1, warehouse_id: wh, amount: 0, notes }).select("id,doc_no").single();
@@ -308,7 +308,7 @@ function StocktakePage() {
           ((d as any).document_lines ?? []).forEach((l: any) => { try { const i = JSON.parse(l.description ?? "{}"); c[l.product_id] = String(i.actual ?? 0); if (i.reason) rs[l.product_id] = i.reason; } catch { /* ignore */ } });
           const n = unpackNotes(d.notes);
           setMode("count"); setWh(d.warehouse_id ?? ""); setDate(d.doc_date); setCounts(c); setReasons(rs);
-          setStReason(n.reason || ST_REASONS[0]); setStNotes(n.note); setEditId(id);
+          setStReason(n.reason || ST_REASONS[0]!); setStNotes(n.note); setEditId(id);
           qc.invalidateQueries({ queryKey: ["stocktake"] }); qc.invalidateQueries({ queryKey: ["stocktake-docs"] });
           toast.success("تم فتح الجرد للتعديل — عدّل الكميات ثم اعتمد");
           window.scrollTo({ top: 0, behavior: "smooth" });
