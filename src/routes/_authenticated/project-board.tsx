@@ -3,7 +3,7 @@ import { isStale, matchingReading, type SolarReading } from "@/lib/solar-monitor
 import { ArrowDownUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -314,7 +314,7 @@ function Projects() {
                   const monitoringMode = r.status === 'completed' || r.status === 'closed';
                   if (monitoringMode) return (
                     <div className="space-y-2 px-4 pb-3 text-xs">
-                      <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 font-medium ${HEALTH_TONE[h]}`}>{HEALTH_LABEL[h]}</span>{m?.last_sync && <span className="text-muted-foreground">آخر قراءة {new Date(m.last_sync).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</span>}</div>
+                      <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 font-medium ${HEALTH_TONE[h]}`}>{HEALTH_LABEL[h]}</span>{gridOf(r.id) && <span className="rounded-full border px-2 py-0.5">{gridOf(r.id) === 'feed_in' ? '⚡ يورّد للشبكة' : '🏭 لا يورّد للشبكة'}</span>}{m?.last_sync && <span className="text-muted-foreground">آخر قراءة {new Date(m.last_sync).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</span>}</div>
                       {m ? <div className="grid grid-cols-4 gap-1 text-center">
                         {[['الآن', rd ? `${fmtNum(rd.power_kw, 1)} kW` : '—'], ['اليوم', rd ? `${fmtNum(rd.today_kwh, 0)} kWh` : '—'], ['الشهر', rd ? `${fmtNum(rd.month_kwh, 0)} kWh` : '—'], ['الاستطاعة', `${fmtNum(Number(m.capacity_kwp), 1)} kWp`]].map(([l, v]) => <div key={l} className="rounded-lg bg-muted/50 p-1.5"><div className="text-muted-foreground">{l}</div><div className="font-semibold">{v}</div></div>)}
                       </div> : <p className="text-muted-foreground">لم تُربط المحطة بالمراقبة بعد</p>}
