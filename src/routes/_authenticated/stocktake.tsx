@@ -25,8 +25,8 @@ export const Route = createFileRoute("/_authenticated/stocktake")({
 
 const ST_REASONS = ["جرد دوري", "جرد سنوي", "جرد مفاجئ", "تسليم واستلام", "تسوية استثنائية", "أخرى"];
 /** Stocktake header notes: first line "السبب: X", the rest is the free note. */
-export const packNotes = (reason: string, note: string) => `السبب: ${reason}${note.trim() ? "\n" + note.trim() : ""}`;
-export const unpackNotes = (n: string | null | undefined) => {
+const packNotes = (reason: string, note: string) => `السبب: ${reason}${note.trim() ? "\n" + note.trim() : ""}`;
+const unpackNotes = (n: string | null | undefined) => {
   const s = n ?? ""; const m = s.match(/^السبب: (.*)(?:\n([\s\S]*))?$/);
   return m ? { reason: m[1], note: m[2] ?? "" } : { reason: "", note: s === "جرد مخزني وتسوية فروقات" ? "" : s };
 };
