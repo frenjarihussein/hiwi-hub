@@ -1,0 +1,2 @@
+ALTER TABLE public.telegram_team_projects DROP CONSTRAINT IF EXISTS telegram_team_projects_project_id_fkey;
+ALTER TABLE public.telegram_team_projects ADD CONSTRAINT telegram_team_projects_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE DEFERRABLE;
