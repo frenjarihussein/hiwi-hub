@@ -218,6 +218,13 @@
       "when": 1793443734397,
       "tag": "0030_restore_schema_apply",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793446796085,
+      "tag": "0031_telegram_team_projects_cascade",
+      "breakpoints": true
     }
   ]
 }
