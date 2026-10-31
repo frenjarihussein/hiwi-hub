@@ -1,3 +1,4 @@
+import { withTenantBot } from './integrations.server';
 import { discoverStations, fetchSma, fetchSungrow } from './solar-providers.server';
 import { combineReadings, matchingReading, newAlertText, type SolarUnit } from './solar-monitor';
 import { alarmKey, reportClock, teamReportRows } from './telegram-team';
@@ -88,7 +89,7 @@ async function performanceCheck(admin: Awaited<typeof import('@/lib/app-database
         if (!access.ids.includes(flag.id)) continue;
         const deliv = await admin.from('telegram_deliveries').insert({ member_id: member.id, delivery_key: `perf:${today}:${flag.id}` }).select('id').single();
         if (deliv.error || !deliv.data) continue;
-        try { await sendTelegram(Number(member.chat_id), `🧽 ${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c] || c)}`); await admin.from('telegram_deliveries').update({ state: 'sent' }).eq('id', deliv.data.id); }
+        try { await withTenantBot(tenantId, () => sendTelegram(Number(member.chat_id), `🧽 ${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c] || c)}`)); await admin.from('telegram_deliveries').update({ state: 'sent' }).eq('id', deliv.data.id); }
         catch { await admin.from('telegram_deliveries').update({ state: 'failed' }).eq('id', deliv.data.id); }
       }
     }
@@ -130,7 +131,7 @@ export async function sendTeamReportsJob(alertsOnly = false) {
         const latestAccess = await effectiveMemberAccess(admin,latest,allowed);
         if (JSON.stringify(latestAccess.ids) !== JSON.stringify(access.ids) || latestAccess.finance !== access.finance) continue;
         try {
-          await sendTelegram(Number(member.chat_id),delivery.text,[[{ text:'المشاريع والاستعلام عن الأعطال',callback_data:`t:${team.id}:list` }]]);
+          await withTenantBot(team.tenant_id, () => sendTelegram(Number(member.chat_id),delivery.text,[[{ text:'المشاريع والاستعلام عن الأعطال',callback_data:`t:${team.id}:list` }]]));
           await admin.from('telegram_deliveries').update({ state:'sent' }).eq('id',claim.data.id);
           sent++;
         } catch { await admin.from('telegram_deliveries').update({ state:'failed' }).eq('id',claim.data.id); }

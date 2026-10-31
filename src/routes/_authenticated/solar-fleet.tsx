@@ -125,7 +125,7 @@ function Team({ data, label, run, busy }: { data: Awaited<ReturnType<typeof getS
   const [projects, setProjects] = useState(data.selected);
   const [templates, setTemplates] = useState<string[]>(data.team?.report_templates ?? ['status']);
   const TEMPLATES: [string, string][] = [['status', label('حالة المحطات الكاملة', 'Full station status')], ['today', label('إنتاج اليوم', 'Today production')], ['alarms', label('ملخص الإنذارات', 'Alarm summary')], ['top', label('أفضل المحطات أداءً', 'Top producers')], ['attention', label('محطات تحتاج انتباهاً', 'Attention needed')], ['finance', label('العوائد وخفض CO₂', 'Income & CO₂')]];
-  const url = data.team ? `https://t.me/KFP_solar_bot?start=team_${data.team.id}` : null;
+  const url = data.team ? `https://t.me/${data.botUsername}?start=team_${data.team.id}` : null;
   return <div className="space-y-5 pt-5">
     <BotIdentitySettings />
     <TelegramLinkCard />

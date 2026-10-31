@@ -14,7 +14,8 @@ export const createTelegramLink = createServerFn({ method: "POST" })
       code_expires: new Date(Date.now() + 15 * 60_000).toISOString(),
     }, { onConflict: "user_id" });
     if (error) throw new Error("Unable to create link");
-    return { url: `https://t.me/KFP_solar_bot?start=${code}` };
+    const { botUsernameFor } = await import("./integrations.server");
+    return { url: `https://t.me/${await botUsernameFor(me.tenant_id)}?start=${code}` };
   });
 
 export const unlinkTelegram = createServerFn({ method: "POST" })
@@ -52,7 +53,7 @@ export const createClientTelegramLink = createServerFn({ method: "POST" })
     const { appDatabaseAdmin: supabaseAdmin } = await import("@/lib/app-database.server");
     const { error } = await supabaseAdmin.from("telegram_client_links").insert({ tenant_id: tenantId, project_id: data.projectId, token, password_hash: h.hash, password_salt: h.salt });
     if (error) throw new Error("تعذر إنشاء الرابط");
-    const { readIntegration } = await import("./integrations.server");
-    const bot = (await readIntegration(null, "telegram").catch(() => ({}) as { username?: string })).username || "KFP_solar_bot";
+    const { botUsernameFor } = await import("./integrations.server");
+    const bot = await botUsernameFor(tenantId);
     return { url: `https://t.me/${bot}?start=c_${token}` };
   });

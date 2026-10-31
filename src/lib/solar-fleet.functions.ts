@@ -23,7 +23,8 @@ export const getSolarFleet = createServerFn({ method: 'GET' }).middleware([requi
     if (team) selected = (await supabaseAdmin.from('telegram_team_projects').select('project_id').eq('team_id', team.id)).data?.map(p => p.project_id) || [];
   }
   const users = (admin || owner) ? (await context.supabase.from('profiles').select('id,full_name,email,is_active').eq('tenant_id',(await context.supabase.rpc('current_tenant_id')).data || '')).data || [] : [];
-  return { users, stations: stations.data || [], projects: projects.data || [], monitors: monitors.data || [], members: members.data || [], team, selected, isAdmin: Boolean(admin || owner) };
+  const botUsername = (admin || owner) ? await (await import('./integrations.server')).botUsernameFor((await context.supabase.rpc('current_tenant_id')).data || null) : 'KFP_solar_bot';
+  return { botUsername, users, stations: stations.data || [], projects: projects.data || [], monitors: monitors.data || [], members: members.data || [], team, selected, isAdmin: Boolean(admin || owner) };
 });
 
 export const importSolarStations = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
@@ -174,7 +175,8 @@ export const saveTelegramTeam = createServerFn({ method: 'POST' }).middleware([r
       const inserted = await supabaseAdmin.from('telegram_team_projects').insert([...new Set(data.projects)].map(project_id => ({ team_id: id, tenant_id: tenantId, project_id })));
       if (inserted.error) throw new Error('Unable to save team projects');
     }
-    return { id, url: `https://t.me/KFP_solar_bot?start=team_${id}` };
+    const { botUsernameFor } = await import('./integrations.server');
+    return { id, url: `https://t.me/${await botUsernameFor(tenantId)}?start=team_${id}` };
   });
 
 export const setTelegramMember = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
@@ -222,16 +224,20 @@ export const saveTelegramIdentity = createServerFn({ method: 'POST' }).middlewar
   .handler(async ({ data, context }) => {
     await botOwner(context);
     const { telegramCall, telegramPhoto } = await import('./telegram.server');
-    await telegramCall('setMyName', { name: data.name });
-    await telegramCall('setMyDescription', { description: data.description });
-    await telegramCall('setMyShortDescription', { short_description: data.shortDescription });
-    if (data.photo) await telegramPhoto(data.photo);
-    return { ok: true };
+    const { withTenantBot } = await import('./integrations.server');
+    return withTenantBot((await context.supabase.rpc('current_tenant_id')).data as string | null, async () => {
+      await telegramCall('setMyName', { name: data.name });
+      await telegramCall('setMyDescription', { description: data.description });
+      await telegramCall('setMyShortDescription', { short_description: data.shortDescription });
+      if (data.photo) await telegramPhoto(data.photo);
+      return { ok: true };
+    });
   });
 export const getTelegramIdentity = createServerFn({ method: 'GET' }).middleware([requireAppDatabaseAuth]).handler(async ({ context }) => {
   await botOwner(context);
   const { telegramCall } = await import('./telegram.server');
-  const [name, description, short] = await Promise.all([telegramCall('getMyName', {}), telegramCall('getMyDescription', {}), telegramCall('getMyShortDescription', {})]);
+  const { withTenantBot } = await import('./integrations.server');
+  const [name, description, short] = await withTenantBot((await context.supabase.rpc('current_tenant_id')).data as string | null, () => Promise.all([telegramCall('getMyName', {}), telegramCall('getMyDescription', {}), telegramCall('getMyShortDescription', {})]));
   return { name: name.result?.name || '', description: description.result?.description || '', shortDescription: short.result?.short_description || '' };
 });
 const sgFields = ['appkey', 'secret', 'user', 'pass', 'base'] as const;
@@ -247,10 +253,11 @@ export const getIntegrationSettings = createServerFn({ method: 'GET' }).middlewa
   const { tenantId, owner } = await integrationGuard(context);
   const { readIntegration } = await import('./integrations.server');
   const sg = await readIntegration(tenantId, 'sungrow');
-  const tg = owner ? await readIntegration(null, 'telegram') : {};
+  const tg = await readIntegration(tenantId, 'telegram');
+  const platform = await readIntegration(null, 'telegram').catch(() => ({} as import('./integrations.server').IntegrationConfig));
   return {
-    sungrow: { appkey: sg.appkey || '', user: sg.user || '', base: sg.base || '', hasSecret: Boolean(sg.secret), hasPass: Boolean(sg.pass) },
-    telegram: { canEdit: owner, hasToken: Boolean((tg as import('./integrations.server').IntegrationConfig).bot_token), username: (tg as import('./integrations.server').IntegrationConfig).username || '' },
+    sungrow: { appkey: sg.appkey || '', user: sg.user || '', base: sg.base || '', hasSecret: Boolean(sg.secret), hasPass: Boolean(sg.pass), own: Boolean(sg.appkey && sg.secret && sg.user && sg.pass) },
+    telegram: { canEdit: true, hasToken: Boolean(tg.bot_token), username: tg.username || '', platformUsername: platform.username || 'KFP_solar_bot', isPlatformOwner: owner },
   };
 });
 export const saveSungrowSettings = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
@@ -275,18 +282,23 @@ export const testSungrowSettings = createServerFn({ method: 'POST' }).middleware
     return { ok: true, own: env.own, stations: stations.length, message: '' };
   } catch (e) { return { ok: false, own: false, stations: 0, message: e instanceof Error ? e.message : 'فشل الاتصال' }; }
 });
-/** Platform bot token (one shared bot): only the platform owner can change it; webhook is re-registered on save. */
+/** Company bot token: each company admin links its own bot (or clears it to use the platform bot). */
 export const saveTelegramToken = createServerFn({ method: 'POST' }).middleware([requireAppDatabaseAuth])
-  .inputValidator((d: unknown) => z.object({ token: z.string().trim().regex(/^\d+:[\w-]{20,}$/, 'رمز البوت غير صحيح'), origin: z.string().url() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ token: z.string().trim().regex(/^\d+:[\w-]{20,}$/, 'رمز البوت غير صحيح').or(z.literal('')), origin: z.string().url() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { owner } = await integrationGuard(context);
-    if (!owner) throw new Error('Forbidden');
+    // Each company admin links its own bot; the webhook carries the company id so updates use that bot.
+    const { tenantId } = await integrationGuard(context);
+    const { writeIntegration, withTenantBot } = await import('./integrations.server');
+    const { webhookSecret, telegramCall } = await import('./telegram.server');
+    if (!data.token) {
+      await withTenantBot(tenantId, () => telegramCall('deleteWebhook', {})).catch(() => undefined);
+      await writeIntegration(tenantId, 'telegram', {});
+      return { username: '' };
+    }
     const me = await fetch(`https://api.telegram.org/bot${data.token}/getMe`).then(r => r.json()) as { ok?: boolean; result?: { username?: string } };
     if (!me.ok) throw new Error('رمز البوت مرفوض من تلغرام');
-    const { writeIntegration } = await import('./integrations.server');
-    await writeIntegration(null, 'telegram', { bot_token: data.token, username: me.result?.username || '' });
-    const { webhookSecret, telegramCall } = await import('./telegram.server');
-    const origin = new URL(data.origin).origin;
-    await telegramCall('setWebhook', { url: `${origin}/api/public/telegram/webhook`, secret_token: await webhookSecret() });
+    await writeIntegration(tenantId, 'telegram', { bot_token: data.token, username: me.result?.username || '' });
+    const origin = new URL(data.origin).origin.replace(/\/\/id-preview--/, '//project--').replace(/(project--[0-9a-f-]{36})(\.)/, '$1-dev$2');
+    await withTenantBot(tenantId, async () => telegramCall('setWebhook', { url: `${origin}/api/public/telegram/webhook?t=${tenantId}`, secret_token: await webhookSecret() }));
     return { username: me.result?.username || '' };
   });

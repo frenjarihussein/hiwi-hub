@@ -26,6 +26,13 @@ export function IntegrationSettings() {
     <div className="max-w-3xl space-y-6">
       <section className="space-y-3 rounded-lg border p-4">
         <h3 className="font-semibold">ربط سن غرو (iSolarCloud) لهذه الشركة</h3>
+        <div className="rounded-md bg-muted p-3 text-xs space-y-1">
+          <div>الحالة الحالية: <b>{s?.own ? "مربوط بحساب سن غرو الخاص بالشركة" : "غير مربوط — يُستخدم حساب المنصة الافتراضي"}</b></div>
+          {s?.appkey && <div>App Key: {s.appkey}</div>}
+          {s?.user && <div>المستخدم: {s.user}</div>}
+          <div>الخادم: {s?.base || "https://gateway.isolarcloud.com.hk"}</div>
+          <div>Secret: {s?.hasSecret ? "محفوظ 🔒" : "غير محفوظ"} · كلمة المرور: {s?.hasPass ? "محفوظة 🔒" : "غير محفوظة"}</div>
+        </div>
         <p className="text-xs text-muted-foreground">تُستخدم هذه المفاتيح لاستيراد المحطات والمراقبة والمزامنة. إن تُركت فارغة يُستخدم الحساب الافتراضي للمنصة.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {field("appkey", "App Key")}
@@ -42,11 +49,14 @@ export function IntegrationSettings() {
       </section>
       <section className="space-y-3 rounded-lg border p-4">
         <h3 className="font-semibold">بوت التلغرام</h3>
-        {q.data?.telegram.canEdit ? (<>
-          <p className="text-xs text-muted-foreground">بوت واحد للمنصة كلها. {q.data.telegram.hasToken ? `الحالي: @${q.data.telegram.username}` : "يُستخدم الرمز الافتراضي."} عند الحفظ يُفحص الرمز ويُسجَّل البوت تلقائياً.</p>
+        {q.data && (<>
+          <div className="rounded-md bg-muted p-3 text-xs">الحالة الحالية: <b>{q.data.telegram.hasToken ? `بوت الشركة الخاص @${q.data.telegram.username}` : `يُستخدم بوت المنصة @${q.data.telegram.platformUsername}`}</b></div>
+          <p className="text-xs text-muted-foreground">ضع رمز بوت شركتك من BotFather ليصبح للشركة بوت مستقل لفريق العمل والزبائن. عند الحفظ يُفحص الرمز ويُسجَّل البوت تلقائياً.</p>
           <div className="flex gap-2"><Input type="password" autoComplete="off" placeholder="123456789:AA..." value={bot} onChange={(e) => setBot(e.target.value)} />
-            <Button disabled={busy || !bot} onClick={() => void act(async () => { const r = await saveBot({ data: { token: bot, origin: window.location.origin } }); setBot(""); toast.success(`تم ربط البوت @${r.username}`); void qc.invalidateQueries({ queryKey: ["integration-settings"] }); })}><Save className="size-4" />حفظ وربط</Button></div>
-        </>) : <p className="text-xs text-muted-foreground">رمز البوت يديره مدير المنصة.</p>}
+            <Button disabled={busy || !bot} onClick={() => void act(async () => { const r = await saveBot({ data: { token: bot, origin: window.location.origin } }); setBot(""); toast.success(`تم ربط البوت @${r.username}`); void qc.invalidateQueries(); })}><Save className="size-4" />حفظ وربط</Button>
+            {q.data.telegram.hasToken && <Button variant="ghost" disabled={busy} onClick={() => void act(async () => { if (!window.confirm("فصل بوت الشركة والعودة لبوت المنصة؟")) return; await saveBot({ data: { token: "", origin: window.location.origin } }); void qc.invalidateQueries(); })}><Trash2 className="size-4" />فصل</Button>}
+          </div>
+        </>)}
       </section>
     </div>
   );

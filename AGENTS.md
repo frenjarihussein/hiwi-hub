@@ -63,3 +63,4 @@
 - GlobalWorkProgress observes application requests and query activity; explicit work-progress tasks own batch counts and always finish in finally — concurrent work cannot hide other operations, and unknown durations never fabricate percentages.
 - Brand palettes are derived from the persisted tenant logo via brand-palette.ts and applied as semantic CSS tokens by useApplyBrandColor — every existing branding editor shares a multi-colour theme without new storage or permission paths.
 
+- Company bots are scoped per request via withTenantBot (integrations.server.ts); company webhooks use ?t=<tenant> — one shared handler serves every company's bot.
