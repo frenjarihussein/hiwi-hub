@@ -129,19 +129,32 @@ export async function handleTelegram(request: Request) {
       return Response.json({ ok:true });
     }
     const kindOf = (r: typeof rows[number]) => ((r.data?.['extra'] ?? {}) as Record<string, unknown>)['plant_kind'];
+    const { SYRIA_GOVERNORATES } = await import('./syria-governorates');
+    const govRows = allowed.length ? (await admin.from('solar_projects').select('project_id,survey').eq('tenant_id',team.tenant_id).in('project_id',allowed)).data || [] : [];
+    const govById = new Map(govRows.map((g: any) => [g.project_id, String(g.survey?.governorate || '')]));
+    const govList = SYRIA_GOVERNORATES.map((name, gi) => ({ name, gi, count: rows.filter(r => govById.get(r.id) === name).length })).filter(g => g.count);
+    if (action === 'gov') {
+      const kb = govList.map(g => [{ text:`📍 ${g.name} (${g.count})`, callback_data:`t:${team.id}:g${g.gi}_0` }]);
+      kb.push([{ text:'المشاريع',callback_data:`t:${team.id}:list` }]);
+      await sendTelegram(chatId, govList.length ? '📍 اختر المحافظة:' : 'لم تُحدد محافظات للمشاريع بعد.', kb);
+      return Response.json({ ok:true });
+    }
+    const govMatch = /^g(\d+)_(\d+)$/.exec(action);
+    const listGov = govMatch ? SYRIA_GOVERNORATES[Number(govMatch[1])] : undefined;
     const kindMatch = /^k(ess|ongrid)(\d*)$/.exec(action);
     const listKind = kindMatch?.[1];
-    const isList = action.startsWith('list') || !!kindMatch;
-    const page = Math.max(0, Number(kindMatch ? kindMatch[2] : action.startsWith('list') ? action.slice(4) : 0) || 0);
-    const pool = rows.map((r,i) => ({ r, i })).filter(x => !listKind || kindOf(x.r) === listKind);
-    const prefix = listKind ? `k${listKind}` : 'list';
+    const isList = action.startsWith('list') || !!kindMatch || !!listGov;
+    const page = Math.max(0, Number(govMatch ? govMatch[2] : kindMatch ? kindMatch[2] : action.startsWith('list') ? action.slice(4) : 0) || 0);
+    const pool = rows.map((r,i) => ({ r, i })).filter(x => (!listKind || kindOf(x.r) === listKind) && (!listGov || govById.get(x.r.id) === listGov));
+    const prefix = listGov ? `g${govMatch![1]}_` : listKind ? `k${listKind}` : 'list';
     const keyboard = pool.slice(page*12,page*12+12).map(({ r, i }) => [{ text:`${kindOf(r) === 'ess' ? '🔋 ' : kindOf(r) === 'ongrid' ? '⚡ ' : ''}${r.name}`.slice(0,60),callback_data:`t:${team.id}:p${i}` }]);
     if (page > 0) keyboard.push([{ text:'السابق',callback_data:`t:${team.id}:${prefix}${page-1}` }]);
     if ((page+1)*12 < pool.length) keyboard.push([{ text:'التالي',callback_data:`t:${team.id}:${prefix}${page+1}` }]);
     keyboard.push([{ text:`🔋 بطاريات (${rows.filter(r => kindOf(r) === 'ess').length})`,callback_data:`t:${team.id}:kess` },{ text:`⚡ أون جريد (${rows.filter(r => kindOf(r) === 'ongrid').length})`,callback_data:`t:${team.id}:kongrid` },{ text:'الكل',callback_data:`t:${team.id}:list` }]);
+    keyboard.push([{ text:'📍 حسب المحافظة',callback_data:`t:${team.id}:gov` }]);
     keyboard.push([{ text:'إنتاج اليوم',callback_data:`t:${team.id}:today` },{ text:'الإنذارات',callback_data:`t:${team.id}:alarms` }]);
     keyboard.push([{ text:'الأفضل أداءً',callback_data:`t:${team.id}:top` },{ text:'تحتاج انتباهاً',callback_data:`t:${team.id}:attention` },{ text:'العوائد وCO₂',callback_data:`t:${team.id}:finance` }]);
-    if (isList) await sendTelegram(chatId,pool.length ? (listKind === 'ess' ? '🔋 مشاريع البطاريات' : listKind === 'ongrid' ? '⚡ مشاريع الأون جريد' : '☀️ مشاريع الفريق') : 'لا توجد مشاريع من هذا النوع.',keyboard);
+    if (isList) await sendTelegram(chatId,pool.length ? (listGov ? `📍 مشاريع ${listGov}` : listKind === 'ess' ? '🔋 مشاريع البطاريات' : listKind === 'ongrid' ? '⚡ مشاريع الأون جريد' : '☀️ مشاريع الفريق') : 'لا توجد مشاريع من هذا النوع.',keyboard);
     else {
       const isReport = (REPORT_KINDS as readonly string[]).includes(action);
       const selected = isReport ? rows : /^p\d+$/.test(action) ? rows.slice(Number(action.slice(1)),Number(action.slice(1))+1) : [];
