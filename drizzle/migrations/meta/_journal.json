@@ -211,6 +211,13 @@
       "when": 1793439221426,
       "tag": "0029_tenant_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793443734397,
+      "tag": "0030_restore_schema_apply",
+      "breakpoints": true
     }
   ]
 }
