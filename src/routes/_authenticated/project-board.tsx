@@ -281,6 +281,34 @@ function Projects() {
                   </div>
                   <Ring value={pct} color={color} />
                 </Link>
+                {(() => {
+                  const m = monitoring.data?.find(x => x.project_id === r.id);
+                  const rd = m ? matchingReading(m.last_data, m.demo, m.provider) : null;
+                  const h = healthOf(r.id);
+                  const monitoringMode = r.status === 'completed' || r.status === 'closed';
+                  if (monitoringMode) return (
+                    <div className="space-y-2 px-4 pb-3 text-xs">
+                      <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-0.5 font-medium ${HEALTH_TONE[h]}`}>{HEALTH_LABEL[h]}</span>{m?.last_sync && <span className="text-muted-foreground">آخر قراءة {new Date(m.last_sync).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}</span>}</div>
+                      {m ? <div className="grid grid-cols-4 gap-1 text-center">
+                        {[['الآن', rd ? `${fmtNum(rd.power_kw, 1)} kW` : '—'], ['اليوم', rd ? `${fmtNum(rd.today_kwh, 0)} kWh` : '—'], ['الشهر', rd ? `${fmtNum(rd.month_kwh, 0)} kWh` : '—'], ['الاستطاعة', `${fmtNum(Number(m.capacity_kwp), 1)} kWp`]].map(([l, v]) => <div key={l} className="rounded-lg bg-muted/50 p-1.5"><div className="text-muted-foreground">{l}</div><div className="font-semibold">{v}</div></div>)}
+                      </div> : <p className="text-muted-foreground">لم تُربط المحطة بالمراقبة بعد</p>}
+                      {!!rd?.alarms?.length && <div className="rounded-lg bg-destructive/10 p-1.5 text-destructive">🔔 {rd.alarms.length} إنذار: {rd.alarms.slice(0, 2).map(a => a.text || a.code).join(' · ')}</div>}
+                    </div>
+                  );
+                  const items = (wbs.data ?? []).filter(w => w.project_id === r.id);
+                  const done = items.filter(w => Number(w.progress) >= 100).length;
+                  const next = items.find(w => Number(w.progress) < 100);
+                  const late = items.filter(w => Number(w.progress) < 100 && w.end_date && w.end_date < today()).length;
+                  const open = (snags.data ?? []).filter(s => s.project_id === r.id).length;
+                  return (
+                    <div className="space-y-2 px-4 pb-3 text-xs">
+                      <div className="grid grid-cols-3 gap-1 text-center">
+                        {[['البنود المنجزة', items.length ? `${done}/${items.length}` : '—'], ['بنود متأخرة', String(late)], ['ملاحظات مفتوحة', String(open)]].map(([l, v]) => <div key={l} className="rounded-lg bg-muted/50 p-1.5"><div className="text-muted-foreground">{l}</div><div className="font-semibold">{v}</div></div>)}
+                      </div>
+                      {next && <div className="truncate text-muted-foreground">المرحلة الحالية: <span className="font-medium text-foreground">{next.name}</span> ({fmtNum(Number(next.progress), 0)}%)</div>}
+                    </div>
+                  );
+                })()}
                 <div className="flex items-center gap-2 border-t bg-muted/30 px-4 py-2">
                   {canEdit ? (
                     <select value={r.status} onChange={(e) => setStatus.mutate({ id: r.id, status: e.target.value })} className={`rounded-full border-0 px-2 py-0.5 text-xs font-medium ${TONE[r.status] ?? ""}`} aria-label="حالة المشروع">
