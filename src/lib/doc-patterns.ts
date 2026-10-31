@@ -31,7 +31,6 @@ export const PATTERN_DOC_TYPES: [string, string][] = [
   ["quote", "عرض سعر"], ["receipt", "سند قبض"], ["payment", "سند دفع"], ["transfer", "مناقلة بين المستودعات"],
   ["stock_in", "إدخال مستودع"], ["stock_out", "سند تسليم مواد (إخراج مستودع)"], ["purchase_request", "طلب شراء"],
   ["purchase_order", "أمر شراء"], ["payment_order", "أمر صرف"], ["opening_inventory", "بضاعة أول المدة"], ["closing_inventory", "بضاعة آخر المدة"],
-  ["stocktake", "جرد مخزني"],
 ];
 
 /** Header fields a pattern can fix (and optionally lock). */
@@ -131,7 +130,6 @@ export const PRIMARY_ACCOUNTS: Record<string, [string, string][]> = {
   stock_out: [["project_cost_account_id", "تكاليف المشاريع"]],
   opening_inventory: [["capital_account_id", "حساب رأس المال"]],
   closing_inventory: [["inventory_account_id", "حساب المخزون"]],
-  stocktake: [["inventory_account_id", "حساب المخزون"], ["stock_shortage_account_id", "حساب عجز الجرد"], ["stock_surplus_account_id", "حساب زيادة الجرد"]],
 };
 /** doc types whose main account per document type (doc_type_accounts) can be overridden. */
 export const MAIN_OVERRIDABLE = ["sale", "sale_return", "purchase", "purchase_return", "receipt", "payment"];
