@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { db, scope } from "@/lib/db";
-import { can, useMe } from "@/lib/session";
+import { can, useMe, isProjectsOnlyTenant } from "@/lib/session";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -180,7 +180,7 @@ function SettingsPage() {
     ] },
   ];
   if (t && can(me, "users", "view")) mains.push({ v: "users", l: "المستخدمون والصلاحيات", secs: [{ v: "list", l: "المستخدمون وصلاحياتهم", node: <UsersPage /> }] });
-  if (t) {
+  if (t && !isProjectsOnlyTenant(me)) {
     mains.push(
       { v: "accounting", l: "المحاسبة", secs: [
         { v: "entries", l: "إعدادات القيود", node: <EntrySettingsCard editable={editable} /> },

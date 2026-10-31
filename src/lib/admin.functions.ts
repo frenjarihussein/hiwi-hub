@@ -224,7 +224,8 @@ function companyFeatureRows(tenantId: string, scope: "accounting" | "both" | "pr
   const all = Array.from(new Set([...MODULES, "projects", ...PROJECT_SUBMODULES]));
   return all.map((m) => {
     const isProject = m === "projects" || PROJECT_SUBMODULES.includes(m);
-    const enabled = scope === "both" ? true : scope === "projects" ? isProject || m === "users" : !isProject;
+    // Projects-only companies carry no financial data: the project finance section stays off too.
+    const enabled = scope === "both" ? true : scope === "projects" ? (isProject && m !== "project_finance") || m === "users" : !isProject;
     return { tenant_id: tenantId, module: m, enabled };
   });
 }
