@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Copy, Eye, EyeOff, Plug } from "lucide-react";
 
-const URL_ = import.meta.env.VITE_SUPABASE_URL ?? "";
-const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
-const PID = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "";
+const URL_ = import.meta.env["VITE_SUPABASE_URL"] ?? "";
+const KEY = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
+const PID = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "";
 
 const VARS = [
   { name: "VITE_SUPABASE_URL", value: URL_, from: "Supabase ← Project Settings ← API ← Project URL", secret: false },
