@@ -1,0 +1,8 @@
+{
+  "identifier": "com.yousefsoft.mobile",
+  "build": { "frontendDist": "../mobile" },
+  "app": {
+    "windows": [{ "label": "main", "title": "Yousef Soft", "url": "index.html", "zoomHotkeysEnabled": false }]
+  },
+  "bundle": { "externalBin": [], "resources": [], "targets": "all" }
+}
