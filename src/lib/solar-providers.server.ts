@@ -18,11 +18,10 @@ export async function fetchSungrow(
   plantId: string,
   cap: number,
   detail = false,
+  session?: SungrowSession,
 ): Promise<SolarReading> {
-  const login = await call(env, "login", { user_account: env.user, user_password: env.pass });
-  const token = login?.token;
-  if (!token) throw new Error("فشل تسجيل الدخول إلى iSolarCloud");
-  const list = { pageList: await sungrowPlants(env, token) };
+  const { token, plants } = session ?? await sungrowSession(env);
+  const list = { pageList: plants };
   const key = String(plantId).trim().toLowerCase();
   const ps = (list?.pageList ?? []).find((p: any) =>
     String(p.ps_id) === key || String(p.ps_name ?? "").trim().toLowerCase() === key);
@@ -67,6 +66,15 @@ export async function fetchSungrow(
       location: ps.ps_location ? String(ps.ps_location) : undefined,
     },
   };
+}
+
+export type SungrowSession = { token: string; plants: any[] };
+/** One login + one plant list serves every station of the account (fleet sync stays within runtime limits). */
+export async function sungrowSession(env: { base: string; secret: string; appkey: string; user: string; pass: string }): Promise<SungrowSession> {
+  const login = await call(env, "login", { user_account: env.user, user_password: env.pass });
+  const token = login?.token;
+  if (!token) throw new Error("فشل تسجيل الدخول إلى iSolarCloud");
+  return { token, plants: await sungrowPlants(env as any, token) };
 }
 
 // Sungrow spells the installed-capacity field "total_capcity"; fall back to installed_power.
