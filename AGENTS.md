@@ -64,5 +64,4 @@
 - Brand palettes are derived from the persisted tenant logo via brand-palette.ts and applied as semantic CSS tokens by useApplyBrandColor — every existing branding editor shares a multi-colour theme without new storage or permission paths.
 
 - Company bots are scoped per request via withTenantBot (integrations.server.ts); company webhooks use ?t=<tenant> — one shared handler serves every company's bot.
-
-- desktop/ holds a standalone Tauri v2 shell that launches a bundled local stack sidecar (Postgres+PostgREST+GoTrue+app server); it is outside the web build — keeps the cloud app unaffected.
+- Subdirectories have their own AGENTS.md; read them before changing files there.
