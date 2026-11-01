@@ -121,6 +121,25 @@ async function main() {
   writeFileSync(join(dataDir, "anon.key"), ANON);
 }
 
+// Stable hardware fingerprint: Windows MachineGuid (+ hostname), hashed so the raw ID never leaves the PC.
+let cachedDevice = "";
+function deviceId() {
+  if (cachedDevice) return cachedDevice;
+  let raw = "";
+  try {
+    const r = spawnSync("reg", ["query", "HKLM\\SOFTWARE\\Microsoft\\Cryptography", "/v", "MachineGuid"], { encoding: "utf8" });
+    raw = (r.stdout.match(/MachineGuid\s+REG_SZ\s+(\S+)/) || [])[1] || "";
+  } catch {}
+  if (!raw) {
+    const f = join(dataDir, "device.id");
+    if (!existsSync(f)) writeFileSync(f, randomBytes(16).toString("hex"));
+    raw = readFileSync(f, "utf8");
+  }
+  const h = createHmac("sha256", "yousef-device").update(raw + "|" + (process.env.COMPUTERNAME || "")).digest("hex").toUpperCase();
+  cachedDevice = `YS-${h.slice(0, 4)}-${h.slice(4, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}`;
+  return cachedDevice;
+}
+
 // Single URL like Supabase: /rest/v1 -> PostgREST, /auth/v1 -> GoTrue.
 function startGateway() {
   Bun.serve({
@@ -129,6 +148,7 @@ function startGateway() {
       const u = new URL(req.url);
       const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*", "access-control-expose-headers": "*" };
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (u.pathname === "/__device") return Response.json({ device: deviceId() }, { headers: cors });
       let target: string | null = null;
       if (u.pathname.startsWith("/rest/v1")) target = `http://127.0.0.1:${REST_PORT}${u.pathname.slice(8) || "/"}`;
       else if (u.pathname.startsWith("/auth/v1")) target = `http://127.0.0.1:${AUTH_PORT}${u.pathname.slice(8) || "/"}`;
