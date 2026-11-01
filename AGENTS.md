@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Read nested AGENTS.md before edits; local rules supplement these.
+- Read nested AGENTS.md before edits, including desktop/AGENTS.md.
 - Cashier types use profiles.account_kind and AppShell CASHIER_TABS — exclude cashiers from the full menu.
 - Appearance uses user_prefs.extra.appearance, root data-appearance and ModernNavigation's filtered AppShell menu — presentation never grants permissions.
 - Store per-user UI choices in public.user_prefs jsonb — one row per user, no schema per option.
@@ -46,7 +46,8 @@
 - Legacy product initial_quantity remains readable by opening invoices but has no directory editor; only posting changes stock. Ending inventory never adds physical stock.
 - ledger-display.ts centralizes currency amounts, debit/credit labels, and nature-side signs for statements and cash journals — avoids divergent reporting calculations.
 - JournalNavigation reads scoped journal IDs for detail-page navigation; ledger descriptions link to those details — preserves filters and avoids discarding edits silently.
-- Reconnect restoration requires the full original schema dump, then incrementals; never invent schema from app code. Current checkout lacks the base dump. app-database adapters preserve original schema types, not data, while retaining managed clients/auth/RLS. Restore records/users only from user backups; keep drizzle/schema.ts a stub.
+- Restore only the original schema dump then incrementals, never inferred schema. app-database preserves types, managed clients/auth/RLS, not data; records/users require user backups. Keep drizzle/schema.ts a stub.
+- Desktop CI alone selects Node output and runtime connection expressions without editing managed clients — cloud retains its target.
 - accounts.balance_side (debit/credit/both, inherited from ancestors via effectiveSide) decides balance-sheet side before nature — generic natures misplaced capital.
 - FX revaluation mode lives in tenant_settings.fx_reval_mode/fx_reval_last; fx-reval.ts runs it client-side through revalue_fx_balances — one posting path.
 - Project leads are projects with status='lead' (lead_* columns); projects_only account_kind shows only project tabs — no separate leads table.
