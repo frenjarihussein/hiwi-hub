@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { PLAN_LABEL, verifyLicense, type LicenseCheck } from "@/lib/desktop-license";
 
 export const IS_DESKTOP = import.meta.env["VITE_DESKTOP"] === "1";
-const APP_VERSION = import.meta.env["VITE_APP_VERSION"] || "0.1.0";
 const baseUrl = () => window.location.origin + "/__backend";
 
 async function loadDevice(): Promise<string> {

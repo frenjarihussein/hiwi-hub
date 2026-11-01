@@ -1,8 +1,9 @@
-// @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { webcrypto } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
 import { b64u, encodePayload, formatKey, parseKey, verifyLicense, type LicensePayload } from "./desktop-license";
 
 describe("offline signed licenses", () => {
+  vi.stubGlobal("crypto", webcrypto);
   const now = 1_800_000_000_000;
   const device = "YS-1234-5678-ABCD-EF90";
   async function fixture(expiry: number | null = now + 1000) {

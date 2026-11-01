@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect } from "vitest";
 // @ts-expect-error The packaged Android picker is a standalone browser JS module.
 import { serverUrl } from "../../desktop/mobile/server-url.js";

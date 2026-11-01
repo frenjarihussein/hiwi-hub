@@ -37,8 +37,16 @@ function DesktopLicenses() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ device: "", customer: "", plan: "year", days: "", notes: "" });
   const [issued, setIssued] = useState("");
-  const licenses = useQuery({ queryKey: ["desktop_licenses"], queryFn: async () => (await db.from("desktop_licenses").select("*").order("created_at", { ascending: false })).data ?? [] });
-  const devices = useQuery({ queryKey: ["desktop_devices"], queryFn: async () => (await db.from("desktop_devices").select("*").order("last_seen", { ascending: false })).data ?? [] });
+  const licenses = useQuery({ queryKey: ["desktop_licenses"], queryFn: async () => {
+    const { data, error } = await db.from("desktop_licenses").select("*").order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  } });
+  const devices = useQuery({ queryKey: ["desktop_devices"], queryFn: async () => {
+    const { data, error } = await db.from("desktop_devices").select("*").order("last_seen", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  } });
 
   const issue = useMutation({
     mutationFn: () => issueDesktopLicense({ data: { ...form, days: Number(form.days) || 0 } }),
@@ -50,11 +58,12 @@ function DesktopLicenses() {
     if (error) toast.error(error.message); else { toast.success(revoked ? "سيُوقف الجهاز عند اتصاله القادم" : "أعيد التفعيل"); void qc.invalidateQueries({ queryKey: ["desktop_licenses"] }); }
   };
   const copy = (t: string) => { void navigator.clipboard.writeText(t); toast.success("تم النسخ"); };
-  const online = (s: string) => Date.now() - new Date(s).getTime() < 7 * 3600_000;
+  const online = (s: string) => Date.now() - new Date(s).getTime() < 10 * 60_000;
 
   return (
     <div dir="rtl" className="space-y-4 p-4">
       <PageHeader title="تراخيص نسخ الديسكتوب" />
+      {(licenses.error || devices.error) && <p role="alert" className="text-sm text-destructive">تعذّر تحميل التراخيص أو الأجهزة. أعد المحاولة.</p>}
       <Tabs defaultValue="issue">
         <TabsList>
           <TabsTrigger value="issue"><KeyRound className="ml-1 h-4 w-4" />مولد التراخيص</TabsTrigger>
