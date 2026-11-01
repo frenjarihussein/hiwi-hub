@@ -59,6 +59,7 @@ jobs:
           NITRO_PRESET: node-server
           VITE_SUPABASE_URL: http://127.0.0.1:54321
           VITE_SUPABASE_PROJECT_ID: local
+          VITE_DESKTOP: "1"
         run: |
           bun install --frozen-lockfile || bun install
           VITE_SUPABASE_PUBLISHABLE_KEY="$ANON" bun run build

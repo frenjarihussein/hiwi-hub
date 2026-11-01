@@ -25,6 +25,7 @@ import { Route as AuthenticatedCollabRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedCompaniesRouteImport } from './routes/_authenticated/companies'
 import { Route as AuthenticatedCostCentersRouteImport } from './routes/_authenticated/cost-centers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDesktopLicensesRouteImport } from './routes/_authenticated/desktop-licenses'
 import { Route as AuthenticatedDocPatternsRouteImport } from './routes/_authenticated/doc-patterns'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -164,6 +165,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDesktopLicensesRoute =
+  AuthenticatedDesktopLicensesRouteImport.update({
+    id: '/desktop-licenses',
+    path: '/desktop-licenses',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDocPatternsRoute =
   AuthenticatedDocPatternsRouteImport.update({
     id: '/doc-patterns',
@@ -495,6 +502,7 @@ export interface FileRoutesByFullPath {
   '/companies': typeof AuthenticatedCompaniesRoute
   '/cost-centers': typeof AuthenticatedCostCentersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/desktop-licenses': typeof AuthenticatedDesktopLicensesRoute
   '/doc-patterns': typeof AuthenticatedDocPatternsRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/home': typeof AuthenticatedHomeRoute
@@ -570,6 +578,7 @@ export interface FileRoutesByTo {
   '/companies': typeof AuthenticatedCompaniesRoute
   '/cost-centers': typeof AuthenticatedCostCentersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/desktop-licenses': typeof AuthenticatedDesktopLicensesRoute
   '/doc-patterns': typeof AuthenticatedDocPatternsRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/home': typeof AuthenticatedHomeRoute
@@ -647,6 +656,7 @@ export interface FileRoutesById {
   '/_authenticated/companies': typeof AuthenticatedCompaniesRoute
   '/_authenticated/cost-centers': typeof AuthenticatedCostCentersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/desktop-licenses': typeof AuthenticatedDesktopLicensesRoute
   '/_authenticated/doc-patterns': typeof AuthenticatedDocPatternsRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
@@ -724,6 +734,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/cost-centers'
     | '/dashboard'
+    | '/desktop-licenses'
     | '/doc-patterns'
     | '/documents'
     | '/home'
@@ -799,6 +810,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/cost-centers'
     | '/dashboard'
+    | '/desktop-licenses'
     | '/doc-patterns'
     | '/documents'
     | '/home'
@@ -875,6 +887,7 @@ export interface FileRouteTypes {
     | '/_authenticated/companies'
     | '/_authenticated/cost-centers'
     | '/_authenticated/dashboard'
+    | '/_authenticated/desktop-licenses'
     | '/_authenticated/doc-patterns'
     | '/_authenticated/documents'
     | '/_authenticated/home'
@@ -1064,6 +1077,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/desktop-licenses': {
+      id: '/_authenticated/desktop-licenses'
+      path: '/desktop-licenses'
+      fullPath: '/desktop-licenses'
+      preLoaderRoute: typeof AuthenticatedDesktopLicensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/doc-patterns': {
@@ -1500,6 +1520,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompaniesRoute: typeof AuthenticatedCompaniesRoute
   AuthenticatedCostCentersRoute: typeof AuthenticatedCostCentersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDesktopLicensesRoute: typeof AuthenticatedDesktopLicensesRoute
   AuthenticatedDocPatternsRoute: typeof AuthenticatedDocPatternsRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
@@ -1562,6 +1583,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompaniesRoute: AuthenticatedCompaniesRoute,
   AuthenticatedCostCentersRoute: AuthenticatedCostCentersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDesktopLicensesRoute: AuthenticatedDesktopLicensesRoute,
   AuthenticatedDocPatternsRoute: AuthenticatedDocPatternsRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
