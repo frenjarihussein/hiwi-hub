@@ -78,6 +78,7 @@ import { Route as AuthenticatedEmployeesEmployeeIdRouteImport } from './routes/_
 import { Route as AuthenticatedJournalEntryIdRouteImport } from './routes/_authenticated/journal.$entryId'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects_.$projectId'
 import { Route as AuthenticatedStatementPartnerIdRouteImport } from './routes/_authenticated/statement.$partnerId'
+import { Route as ApiPublicDesktopHeartbeatRouteImport } from './routes/api/public/desktop-heartbeat'
 import { Route as ApiPublicBrandTenantIdRouteImport } from './routes/api/public/brand/$tenantId'
 import { Route as ApiPublicHooksScheduledBackupRouteImport } from './routes/api/public/hooks/scheduled-backup'
 import { Route as ApiPublicJobsSolarFleetRouteImport } from './routes/api/public/jobs/solar-fleet'
@@ -449,6 +450,12 @@ const AuthenticatedStatementPartnerIdRoute =
     path: '/statement/$partnerId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicDesktopHeartbeatRoute =
+  ApiPublicDesktopHeartbeatRouteImport.update({
+    id: '/api/public/desktop-heartbeat',
+    path: '/api/public/desktop-heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBrandTenantIdRoute = ApiPublicBrandTenantIdRouteImport.update({
   id: '/api/public/brand/$tenantId',
   path: '/api/public/brand/$tenantId',
@@ -540,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/journal/$entryId': typeof AuthenticatedJournalEntryIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/statement/$partnerId': typeof AuthenticatedStatementPartnerIdRoute
+  '/api/public/desktop-heartbeat': typeof ApiPublicDesktopHeartbeatRoute
   '/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/api/public/brand/$tenantId': typeof ApiPublicBrandTenantIdRoute
   '/api/public/hooks/scheduled-backup': typeof ApiPublicHooksScheduledBackupRoute
@@ -614,6 +622,7 @@ export interface FileRoutesByTo {
   '/journal/$entryId': typeof AuthenticatedJournalEntryIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/statement/$partnerId': typeof AuthenticatedStatementPartnerIdRoute
+  '/api/public/desktop-heartbeat': typeof ApiPublicDesktopHeartbeatRoute
   '/assistant': typeof AuthenticatedAssistantIndexRoute
   '/api/public/brand/$tenantId': typeof ApiPublicBrandTenantIdRoute
   '/api/public/hooks/scheduled-backup': typeof ApiPublicHooksScheduledBackupRoute
@@ -690,6 +699,7 @@ export interface FileRoutesById {
   '/_authenticated/journal/$entryId': typeof AuthenticatedJournalEntryIdRoute
   '/_authenticated/projects_/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/statement/$partnerId': typeof AuthenticatedStatementPartnerIdRoute
+  '/api/public/desktop-heartbeat': typeof ApiPublicDesktopHeartbeatRoute
   '/_authenticated/assistant/': typeof AuthenticatedAssistantIndexRoute
   '/api/public/brand/$tenantId': typeof ApiPublicBrandTenantIdRoute
   '/api/public/hooks/scheduled-backup': typeof ApiPublicHooksScheduledBackupRoute
@@ -766,6 +776,7 @@ export interface FileRouteTypes {
     | '/journal/$entryId'
     | '/projects/$projectId'
     | '/statement/$partnerId'
+    | '/api/public/desktop-heartbeat'
     | '/assistant/'
     | '/api/public/brand/$tenantId'
     | '/api/public/hooks/scheduled-backup'
@@ -840,6 +851,7 @@ export interface FileRouteTypes {
     | '/journal/$entryId'
     | '/projects/$projectId'
     | '/statement/$partnerId'
+    | '/api/public/desktop-heartbeat'
     | '/assistant'
     | '/api/public/brand/$tenantId'
     | '/api/public/hooks/scheduled-backup'
@@ -915,6 +927,7 @@ export interface FileRouteTypes {
     | '/_authenticated/journal/$entryId'
     | '/_authenticated/projects_/$projectId'
     | '/_authenticated/statement/$partnerId'
+    | '/api/public/desktop-heartbeat'
     | '/_authenticated/assistant/'
     | '/api/public/brand/$tenantId'
     | '/api/public/hooks/scheduled-backup'
@@ -932,6 +945,7 @@ export interface RootRouteChildren {
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ShareTokenRoute: typeof ShareTokenRoute
   SolarTokenRoute: typeof SolarTokenRoute
+  ApiPublicDesktopHeartbeatRoute: typeof ApiPublicDesktopHeartbeatRoute
   ApiPublicBrandTenantIdRoute: typeof ApiPublicBrandTenantIdRoute
   ApiPublicHooksScheduledBackupRoute: typeof ApiPublicHooksScheduledBackupRoute
   ApiPublicJobsSolarFleetRoute: typeof ApiPublicJobsSolarFleetRoute
@@ -1423,6 +1437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStatementPartnerIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/desktop-heartbeat': {
+      id: '/api/public/desktop-heartbeat'
+      path: '/api/public/desktop-heartbeat'
+      fullPath: '/api/public/desktop-heartbeat'
+      preLoaderRoute: typeof ApiPublicDesktopHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/brand/$tenantId': {
       id: '/api/public/brand/$tenantId'
       path: '/api/public/brand/$tenantId'
@@ -1602,6 +1623,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTranscribeRoute: ApiTranscribeRoute,
   ShareTokenRoute: ShareTokenRoute,
   SolarTokenRoute: SolarTokenRoute,
+  ApiPublicDesktopHeartbeatRoute: ApiPublicDesktopHeartbeatRoute,
   ApiPublicBrandTenantIdRoute: ApiPublicBrandTenantIdRoute,
   ApiPublicHooksScheduledBackupRoute: ApiPublicHooksScheduledBackupRoute,
   ApiPublicJobsSolarFleetRoute: ApiPublicJobsSolarFleetRoute,
