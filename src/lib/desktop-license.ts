@@ -37,12 +37,16 @@ export function formatKey(raw: string) {
 }
 
 export function parseKey(key: string): { body: string; sig: string; payload: LicensePayload } | null {
+  if (key.length > 4096) return null;
   const k = key.replace(/\s+/g, "").replace(/^YSL1\./, "");
-  const [body, sig] = k.split(".");
-  if (!body || !sig) return null;
+  const [body, sig, extra] = k.split(".");
+  if (!body || !sig || extra !== undefined) return null;
   try {
     const payload = JSON.parse(new TextDecoder().decode(b64u.dec(body))) as LicensePayload;
-    if (payload?.v !== 1 || !payload.d) return null;
+    if (payload?.v !== 1 || typeof payload.id !== "string" || !payload.id
+      || typeof payload.d !== "string" || !/^YS-(?:[0-9A-F]{4}-){3}[0-9A-F]{4}$/.test(payload.d)
+      || typeof payload.c !== "string" || !payload.c || !Object.hasOwn(PLAN_LABEL, payload.p)
+      || !Number.isFinite(payload.i) || (payload.e !== null && (!Number.isFinite(payload.e) || payload.e <= payload.i))) return null;
     return { body, sig, payload };
   } catch {
     return null;
@@ -54,11 +58,11 @@ export type LicenseCheck =
   | { ok: false; reason: "invalid" | "device" | "expired" | "clock" | "revoked"; payload?: LicensePayload };
 
 /** Verifies signature, device binding, expiry and clock rollback (lastSeen = highest time ever observed). */
-export async function verifyLicense(key: string, device: string, now: number, lastSeen = 0): Promise<LicenseCheck> {
+export async function verifyLicense(key: string, device: string, now: number, lastSeen = 0, publicKey = LICENSE_PUBLIC_KEY): Promise<LicenseCheck> {
   const parsed = parseKey(key);
   if (!parsed) return { ok: false, reason: "invalid" };
   try {
-    const pub = await crypto.subtle.importKey("spki", b64u.dec(LICENSE_PUBLIC_KEY.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")), { name: "Ed25519" }, false, ["verify"]);
+    const pub = await crypto.subtle.importKey("spki", b64u.dec(publicKey.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")), { name: "Ed25519" }, false, ["verify"]);
     const ok = await crypto.subtle.verify("Ed25519", pub, b64u.dec(parsed.sig), new TextEncoder().encode(parsed.body));
     if (!ok) return { ok: false, reason: "invalid" };
   } catch {
