@@ -30,11 +30,10 @@ function ruleFields(k: string, label: string) {
       options: [
         { value: "fixed", label: "قيمة ثابتة" },
         { value: "cost", label: "الكلفة + نسبة" },
-        { value: "purchase", label: "سعر الشراء + نسبة" },
       ],
     },
     { key: `price_rules.${k}_pct`, label: `نسبة ${label} %`, type: "number" as const, hideInTable: true, showIf: on },
-    { key: `price_rules.${k}_auto`, label: `تحديث ${label} تلقائياً عند تغيّر الكلفة/سعر الشراء`, type: "checkbox" as const, hideInTable: true, showIf: on },
+    { key: `price_rules.${k}_auto`, label: `تحديث ${label} تلقائياً عند تغيّر الكلفة`, type: "checkbox" as const, hideInTable: true, showIf: on },
   ];
 }
 

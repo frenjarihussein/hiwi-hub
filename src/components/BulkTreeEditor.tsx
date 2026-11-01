@@ -17,12 +17,14 @@ import { unitOptions, useUnits } from "@/lib/units";
 import { usePriceNames } from "@/lib/prices";
 import { useBaseCurrency, useCurrencies } from "@/lib/currencies";
 import { TopScrollArea } from "@/components/TopScrollArea";
+import { costFromMoves } from "@/lib/stocktake-report";
+const fmtCost = (v: unknown) => (Number(v) || 0).toLocaleString("en-US", { maximumFractionDigits: 4 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = any;
 type Line = { key: string; id?: string; parent: string | null; code: string; name: string; name_en: string; is_group: boolean; dirty?: boolean; orig?: Row; vals: Row };
 
-type Col = { key: string; label: string; type?: "text" | "number" | "bool" | "select"; options?: [string, string][]; leafOnly?: boolean; w?: string; required?: boolean };
+type Col = { key: string; label: string; type?: "text" | "number" | "bool" | "select"; options?: [string, string][]; leafOnly?: boolean; w?: string; required?: boolean; readOnly?: boolean };
 const CUR: [string, string][] = ["USD", "SYP", "TRY", "EUR", "SAR", "AED", "JOD", "GBP", "EGP"].map((c) => [c, c]);
 /** Card fields shown as extra columns in the bulk window, per table — required first, then by importance. */
 const COLS: Record<string, Col[]> = {
@@ -40,7 +42,7 @@ const COLS: Record<string, Col[]> = {
     { key: "barcode", label: "الباركود", leafOnly: true, w: "12rem" },
     { key: "unit", label: "الوحدة", type: "select", w: "8rem", leafOnly: true },
     { key: "currency", label: "العملة", type: "select", options: CUR, w: "6rem" },
-    { key: "purchase_price", label: "سعر الشراء (أساسي)", type: "number", leafOnly: true, w: "7rem" },
+    { key: "_cost", label: "سعر الكلفة", type: "number", leafOnly: true, w: "7rem", readOnly: true },
     { key: "sale_price", label: "سعر البيع الأساسي", type: "number", leafOnly: true, w: "7rem" },
     { key: "reorder_level", label: "حد الطلب", type: "number", leafOnly: true, w: "6rem" },
     { key: "is_active", label: "فعّال", type: "bool", w: "4rem" },
@@ -93,7 +95,10 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
   const units = useUnits(itemKind);
   const priceNames = usePriceNames(itemKind);
   const [open, setOpen] = useState(false);
-  const [pcts, setPcts] = useState<Record<string, string>>({});
+  const pctKey = `bulk-pcts:${table}:${itemKind}`;
+  const [pcts, setPctsState] = useState<Record<string, string>>({});
+  useEffect(() => { try { setPctsState(JSON.parse(localStorage.getItem(pctKey) ?? "{}")); } catch { /* ignore */ } }, [pctKey]);
+  const setPcts = (v: Record<string, string>) => { setPctsState(v); try { localStorage.setItem(pctKey, JSON.stringify(v)); } catch { /* ignore */ } };
   const references = useQuery({
     queryKey: ["bulk_refs", table, me?.tenantId], enabled: open && !!me?.tenantId,
     queryFn: async () => {
@@ -128,7 +133,13 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
       if (table === "products" && extra["item_type"]) q = q.eq("item_type", extra["item_type"]);
       const { data, error } = await q.order(codeField);
       if (error) { toast.error(error.message); return; }
-      setLines((data ?? []).map((r: Row) => ({ key: r.id, id: r.id, parent: r.parent_id ?? null, code: r[codeField] ?? "", name: r.name ?? "", name_en: r.name_en ?? "", is_group: !!r.is_group, orig: r, vals: { ...r, is_closing: r.nature === "closing", ...Object.fromEntries(priceNames.map((_, i) => [`prices.${i+1}`, r.prices?.[String(i+1)] ?? ""])), ...Object.fromEntries(Object.entries((r.price_rules ?? {}) as Row).map(([k, v]) => [`price_rules.${k}`, v])) } })));
+      let mc: Record<string, number> = {};
+      if (table === "products") {
+        const { data: mv } = await db.from("stock_moves").select("product_id,direction,qty,unit_cost,move_date,created_at").eq("tenant_id", me.tenantId).range(0, 199999);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mc = costFromMoves((mv ?? []) as any[]);
+      }
+      setLines((data ?? []).map((r: Row) => ({ key: r.id, id: r.id, parent: r.parent_id ?? null, code: r[codeField] ?? "", name: r.name ?? "", name_en: r.name_en ?? "", is_group: !!r.is_group, orig: r, vals: { ...r, _cost: mc[r.id] ?? 0, is_closing: r.nature === "closing", ...Object.fromEntries(priceNames.map((_, i) => [`prices.${i+1}`, r.prices?.[String(i+1)] ?? ""])), ...Object.fromEntries(Object.entries((r.price_rules ?? {}) as Row).map(([k, v]) => [`price_rules.${k}`, v])) } })));
   }
   useEffect(() => { if (open) void reload(); }, [open, me?.tenantId, table, codeField, extra["partner_type"], extra["item_type"]]);
 
@@ -154,7 +165,7 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
   if (table === "products" && extra["item_type"] === "service") extraCols.push({ key: "service_source", label: "مصدر الخدمة", type: "select", leafOnly: true, options: [["internal", "داخلية"], ["purchased", "مشتراة"]], w: "7rem" }, { key: "service_account_id", label: "حساب الخدمة", type: "select", leafOnly: true, options: (references.data?.["accounts"] ?? []), w: "16rem" }, ...priceNames.map((n, i): Col => ({ key: `prices.${i+1}`, label: n, type: "number", leafOnly: true })));
   else if (table === "products") extraCols.push({ key: "default_warehouse_id", label: "المستودع", type: "select", leafOnly: true, options: (references.data?.["warehouses"] ?? []) }, ...priceNames.map((n, i): Col => ({ key: `prices.${i+1}`, label: n, type: "number", leafOnly: true })));
   if (table === "products") {
-    const modes: [string, string][] = [["fixed", "قيمة ثابتة"], ["cost", "الكلفة + نسبة"], ["purchase", "الشراء + نسبة"]];
+    const modes: [string, string][] = [["fixed", "قيمة ثابتة"], ["cost", "الكلفة + نسبة"]];
     [...(priceNames.length ? [] : [["sale", "الأساسي"]]), ...priceNames.map((n, i) => [String(i + 1), n])].forEach(([k, n]) => extraCols.push(
       { key: `price_rules.${k}_mode`, label: `طريقة ${n}`, type: "select", leafOnly: true, options: modes, w: "8rem" },
       { key: `price_rules.${k}_pct`, label: `نسبة ${n} %`, type: "number", leafOnly: true, w: "6rem" },
@@ -172,6 +183,7 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
   function valsFor(l: Line): Row {
     const out: Row = {};
     cols.forEach((c) => {
+      if (c.readOnly) return;
       if ((c.leafOnly && l.is_group) || c.key === "is_closing" || (table === "accounts" && c.key === "currency" && (references.data?.["linkedPartnerAccounts"] ?? []).some(([id]) => id === l.id))) return;
       let v = l.vals[c.key];
       if (v === undefined) return;
@@ -207,11 +219,15 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
     if (!keys.length) { toast.error(t("أدخل نسبة الربح لأحد الأسعار")); return; }
     let n = 0;
     setLines((ls) => ls.map((l) => {
-      const base = Number(l.vals.purchase_price);
-      if (l.is_group || !(base > 0)) return l;
+      if (l.is_group) return l;
+      const base = Number(l.vals._cost) || 0;
       n++;
       const vals = { ...l.vals };
-      keys.forEach(([k, pct]) => { vals[k] = Math.round(base * (1 + Number(pct) / 100) * 10000) / 10000; });
+      keys.forEach(([k, pct]) => {
+        const rk = k === "sale_price" ? "sale" : k.split(".")[1];
+        vals[`price_rules.${rk}_mode`] = "cost"; vals[`price_rules.${rk}_pct`] = pct;
+        if (base > 0) vals[k] = Math.round(base * (1 + Number(pct) / 100) * 10000) / 10000;
+      });
       return { ...l, vals, dirty: true };
     }));
     setTimeout(() => toast.success(`${t("تم احتساب أسعار")} ${n} ${t("مادة")} — ${t("اضغط حفظ")}`), 0);
@@ -288,7 +304,7 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
           </div>
           {stockItems && (
             <div className="flex flex-wrap items-end gap-2 rounded border bg-muted/40 p-2 text-xs">
-              <span className="font-semibold">{t("احتساب الأسعار من سعر الشراء (نسبة ربح %)")}</span>
+              <span className="font-semibold">{t("احتساب الأسعار من سعر الكلفة (نسبة ربح % تُثبَّت على كل المواد)")}</span>
               {[...(priceNames.length ? [] : [["sale_price", "الأساسي"]]), ...priceNames.map((n, i) => [`prices.${i + 1}`, n])].map(([k, label]) => (
                 <label key={k} className="flex items-center gap-1">{t(label!)}<Input type="number" className="h-8 w-20" value={pcts[k!] ?? ""} onChange={(e) => setPcts({ ...pcts, [k!]: e.target.value })} /></label>
               ))}
@@ -323,6 +339,7 @@ export function BulkTreeEditor({ table, codeField = "code", extra = {} }: { tabl
                     || (table === "accounts" && ["is_monetary", "cash_flow_type"].includes(c.key) && l.vals.is_closing)
                     || (table === "accounts" && c.key === "is_monetary" && (l.vals.currency ?? baseCur) === baseCur)) return <span key={c.key} />;
                   const v = l.vals[c.key];
+                  if (c.readOnly) return <span key={c.key} className="num text-sm font-normal">{fmtCost(v)}</span>;
                   const readOnlyCurrency = table === "accounts" && c.key === "currency" && (references.data?.["linkedPartnerAccounts"] ?? []).some(([id]) => id === l.id);
                   if (c.type === "bool") return <input key={c.key} type="checkbox" className="size-4 justify-self-center" checked={!!v} onChange={(e) => setVal(l.key, c.key, e.target.checked)} />;
                   if (c.type === "select") return (
