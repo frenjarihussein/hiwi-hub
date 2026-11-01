@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { b64u, encodePayload, formatKey, planExpiry, type LicensePayload } from "@/lib/desktop-license";
+import { clampBatch, newActivationCode } from "@/lib/desktop-activation";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertSuper(supabase: any) {
@@ -43,4 +44,23 @@ export const issueDesktopLicense = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { license_key };
+  });
+
+export const generateActivationCodes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { count: number; customer: string; plan: string; days?: number }) => {
+    const count = clampBatch(d.count);
+    const customer = String(d.customer ?? "").trim().slice(0, 120);
+    if (!customer) throw new Error("اكتب اسم الزبون أو الدفعة");
+    const plan = ["trial", "month", "year", "lifetime"].includes(d.plan) ? d.plan : "year";
+    return { count, customer, plan, days: Math.max(0, Math.min(3650, Number(d.days) || 0)) };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertSuper(supabase);
+    const batch = `B-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`;
+    const rows = Array.from({ length: data.count }, () => ({ code: newActivationCode(), batch, customer: data.customer, plan: data.plan, days: data.days, created_by: userId }));
+    const { error } = await supabase.from("desktop_activation_codes").insert(rows);
+    if (error) throw new Error(error.message);
+    return { batch, codes: rows.map((r) => r.code) };
   });

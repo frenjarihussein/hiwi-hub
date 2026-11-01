@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyLicense } from "@/lib/desktop-license";
+import { cleanSpecs } from "@/lib/desktop-activation";
 
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type", "access-control-allow-methods": "POST, OPTIONS" };
 
@@ -9,7 +10,7 @@ export const Route = createFileRoute("/api/public/desktop-heartbeat")({
     handlers: {
       OPTIONS: async () => new Response(null, { headers: cors }),
       POST: async ({ request }) => {
-        let body: { device?: string; license?: string; version?: string; company?: string; platform?: string };
+        let body: { device?: string; license?: string; version?: string; company?: string; platform?: string; specs?: unknown };
         try { body = await request.json(); } catch { return Response.json({ error: "bad" }, { status: 400, headers: cors }); }
         const device = String(body.device ?? "").slice(0, 40);
         const check = await verifyLicense(String(body.license ?? ""), device, Date.now());
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/api/public/desktop-heartbeat")({
           device_id: device, license_id: lic ? p.id : null, customer: p.c,
           app_version: String(body.version ?? "").slice(0, 30), company_name: String(body.company ?? "").slice(0, 120),
           platform: String(body.platform ?? "windows").slice(0, 20), last_seen: new Date().toISOString(),
+          ...(body.specs ? (() => { const sp = cleanSpecs(body.specs); return { hostname: sp.hostname, os_name: sp.os, cpu: sp.cpu, ram_gb: sp.ram_gb, specs: sp }; })() : {}),
           last_ip: ((request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "").split(",")[0] ?? "").slice(0, 60),
         }, { onConflict: "device_id" });
         if (error) return Response.json({ error: "unavailable" }, { status: 503, headers: cors });
