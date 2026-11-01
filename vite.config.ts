@@ -8,6 +8,14 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // Only desktop CI overrides the browser URL; managed cloud clients remain unchanged.
+  ...(process.env["VITE_DESKTOP"] === "1" ? {
+    nitro: { preset: "node-server", output: { dir: ".output", publicDir: ".output/public", serverDir: ".output/server" } },
+    vite: { define: {
+      "import.meta.env.VITE_SUPABASE_URL": "(typeof window !== 'undefined' ? window.location.origin + '/__backend' : process.env.SUPABASE_URL)",
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": "(typeof window !== 'undefined' ? window.__YOUSEF_ANON__ : process.env.SUPABASE_PUBLISHABLE_KEY)",
+    } },
+  } : {}),
   plugins: [VitePWA({
     strategies: "generateSW", filename: "sw.js", registerType: "autoUpdate", injectRegister: null,
     outDir: "dist/client",
