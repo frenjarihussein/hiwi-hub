@@ -9,6 +9,7 @@ import { randomBytes, createHmac } from "node:crypto";
 import net from "node:net";
 import { verifyLicense } from "../../src/lib/desktop-license";
 import { localStorageApi } from "./local-storage";
+import { startLocalProxy } from "./local-proxy";
 
 const args = process.argv.slice(2);
 const dataIndex = args.indexOf("--data-dir");
@@ -90,7 +91,7 @@ async function main() {
     GOTRUE_API_HOST: "127.0.0.1", PORT: String(AUTH_PORT), API_EXTERNAL_URL: `http://127.0.0.1:${GATEWAY_PORT}/auth/v1`,
     GOTRUE_DB_DRIVER: "postgres", DATABASE_URL: DB_URL("supabase_auth_admin") + "?search_path=auth",
     GOTRUE_DB_MIGRATIONS_PATH: join(stack, "migrations"),
-    GOTRUE_SITE_URL: `http://127.0.0.1:${APP_PORT}`, GOTRUE_JWT_SECRET: secrets.jwt, GOTRUE_JWT_EXP: "604800",
+    GOTRUE_SITE_URL: "http://127.0.0.1:3001", GOTRUE_JWT_SECRET: secrets.jwt, GOTRUE_JWT_EXP: "604800",
     GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated", GOTRUE_JWT_AUD: "authenticated",
     GOTRUE_DISABLE_SIGNUP: "false", GOTRUE_EXTERNAL_EMAIL_ENABLED: "true", GOTRUE_MAILER_AUTOCONFIRM: "true",
   });
@@ -133,6 +134,7 @@ async function main() {
     });
   } else throw new Error("stack/app-cmd.json missing");
   await waitPort(APP_PORT);
+  startLocalProxy(ANON, APP_PORT, GATEWAY_PORT);
   log(`ready. anon key written to ${join(dataDir, "anon.key")}`);
   writeFileSync(join(dataDir, "anon.key"), ANON);
 }
