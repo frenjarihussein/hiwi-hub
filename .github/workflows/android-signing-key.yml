@@ -1,0 +1,30 @@
+name: Create Android signing key (run once)
+
+on:
+  workflow_dispatch:
+    inputs:
+      password:
+        description: "Choose a strong password for the key (keep it safe)"
+        required: true
+
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: "17" }
+      - name: Generate keystore
+        env:
+          PW: ${{ inputs.password }}
+        run: |
+          echo "::add-mask::$PW"
+          mkdir out
+          keytool -genkeypair -keystore out/yousef.jks -storepass "$PW" -keypass "$PW" \
+            -alias yousef -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Yousef Soft"
+          base64 -w0 out/yousef.jks > out/ANDROID_KEYSTORE_BASE64.txt
+          printf 'ANDROID_KEY_ALIAS = yousef\nANDROID_KEYSTORE_PASSWORD = (your password)\nANDROID_KEY_PASSWORD = (same password)\nANDROID_KEYSTORE_BASE64 = contents of ANDROID_KEYSTORE_BASE64.txt\n' > out/README.txt
+      - uses: actions/upload-artifact@v5
+        with:
+          name: android-signing-key-DELETE-AFTER-DOWNLOAD
+          path: out/
+          retention-days: 1
