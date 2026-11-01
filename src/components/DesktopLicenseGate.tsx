@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PLAN_LABEL, verifyLicense, type LicenseCheck } from "@/lib/desktop-license";
 
-export const IS_DESKTOP = import.meta.env.VITE_DESKTOP === "1";
-const APP_VERSION = import.meta.env.VITE_APP_VERSION || "0.1.0";
-const HEARTBEAT = (import.meta.env.VITE_LICENSE_SERVER || "https://yousef-soft30.lovable.app") + "/api/public/desktop-heartbeat";
+export const IS_DESKTOP = import.meta.env["VITE_DESKTOP"] === "1";
+const APP_VERSION = import.meta.env["VITE_APP_VERSION"] || "0.1.0";
+const HEARTBEAT = (import.meta.env["VITE_LICENSE_SERVER"] || "https://yousef-soft30.lovable.app") + "/api/public/desktop-heartbeat";
 const K = { key: "ys.license", seen: "ys.license.seen", revoked: "ys.license.revoked" };
 
 async function loadDevice(): Promise<string> {
-  const base = import.meta.env.VITE_SUPABASE_URL || "http://127.0.0.1:54321";
+  const base = import.meta.env["VITE_SUPABASE_URL"] || "http://127.0.0.1:54321";
   const r = await fetch(`${base}/__device`);
   return (await r.json()).device as string;
 }
@@ -32,7 +32,7 @@ function useNativeFeel() {
     window.addEventListener("keydown", key, true);
     window.addEventListener("wheel", wheel, { passive: false });
     window.addEventListener("contextmenu", menu);
-    document.documentElement.dataset.desktop = "1";
+    document.documentElement.dataset["desktop"] = "1";
     return () => {
       window.removeEventListener("keydown", key, true);
       window.removeEventListener("wheel", wheel);
