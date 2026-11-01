@@ -23,7 +23,7 @@ export const Route = createFileRoute("/api/public/desktop-heartbeat")({
           device_id: device, license_id: lic ? p.id : null, customer: p.c,
           app_version: String(body.version ?? "").slice(0, 30), company_name: String(body.company ?? "").slice(0, 120),
           platform: String(body.platform ?? "windows").slice(0, 20), last_seen: new Date().toISOString(),
-          last_ip: (request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "").split(",")[0].slice(0, 60),
+          last_ip: ((request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "").split(",")[0] ?? "").slice(0, 60),
         }, { onConflict: "device_id" });
         return Response.json({ revoked: !lic || !!lic.revoked }, { headers: cors });
       },

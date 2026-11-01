@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/desktop-licenses")({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const fmt = (s?: string | null) => (s ? new Date(s).toLocaleString("ar") : "—");
 
 function DesktopLicenses() {
@@ -86,7 +87,7 @@ function DesktopLicenses() {
           <table className="w-full text-sm">
             <thead className="bg-muted text-muted-foreground"><tr><th className="p-2 text-right">الزبون</th><th className="p-2 text-right">الجهاز</th><th className="p-2">المدة</th><th className="p-2">ينتهي</th><th className="p-2">الحالة</th><th /></tr></thead>
             <tbody>
-              {(licenses.data ?? []).map((l: Record<string, string & boolean>) => (
+              {(licenses.data ?? []).map((l: any) => (
                 <tr key={l.id} className="border-t">
                   <td className="p-2">{l.customer}</td>
                   <td className="p-2 font-mono text-xs" dir="ltr">{l.device_id}</td>
@@ -108,7 +109,7 @@ function DesktopLicenses() {
           <table className="w-full text-sm">
             <thead className="bg-muted text-muted-foreground"><tr><th className="p-2 text-right">الجهاز</th><th className="p-2 text-right">الزبون</th><th className="p-2">الإصدار</th><th className="p-2">النظام</th><th className="p-2">أول ظهور</th><th className="p-2">آخر ظهور</th></tr></thead>
             <tbody>
-              {(devices.data ?? []).map((d: Record<string, string>) => (
+              {(devices.data ?? []).map((d: any) => (
                 <tr key={d.device_id} className="border-t">
                   <td className="p-2 font-mono text-xs" dir="ltr"><Badge variant="secondary" className="ml-2">أوفلاين</Badge>{d.device_id}</td>
                   <td className="p-2">{d.customer}</td>
