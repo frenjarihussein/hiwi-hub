@@ -158,12 +158,41 @@ export async function discoverStations(provider: 'sungrow' | 'sma', sgEnv?: Retu
   });
 }
 
+const DIAG_TEXT: Record<string, string> = { '10': 'انقطاع شبكة AC (جهد الشبكة 0V)', '2': 'ارتفاع جهد الشبكة', '39': 'انخفاض مقاومة العزل', '36': 'ارتفاع حرارة الإنفرتر' };
+/** Maps live inverter points to a Sungrow fault code: AC 0V with DC present → 10, AC >253V → 2, insulation <50kΩ → 39, temp >85°C → 36. */
+export function diagnoseInverter(g: (point: number) => number | null): string | null {
+  const ac = [g(18), g(19), g(20)].filter((v): v is number => v != null);
+  const dc = Math.max(g(5) ?? 0, g(7) ?? 0);
+  const ins = g(89), temp = g(4);
+  if (ins != null && ins > 0 && ins < 50) return '39';
+  if (temp != null && temp > 85) return '36';
+  if (ac.length && ac.every((v) => v < 1) && dc > 200) return '10';
+  if (ac.some((v) => v > 253)) return '2';
+  return null;
+}
+
 /** Device list of one station: names inverters/loggers that report fault or offline state. Failures yield no extra detail. */
 async function sungrowDeviceAlarms(env: { base: string; secret: string; appkey: string }, token: string, psId: string) {
   try {
     const r = await call(env, 'getDeviceList', { token, ps_id: psId, curPage: 1, size: 100 });
     const at = new Date().toISOString();
-    return ((r?.pageList ?? []) as any[]).flatMap((d) => {
+    const devs = (r?.pageList ?? []) as any[];
+    // Alarm endpoints are not authorised for these accounts, so faulty inverters are diagnosed from live telemetry (one call).
+    const faultyInv = devs.filter((d) => Number(d.device_type) === 1 && Number(d.dev_fault_status) === 1).slice(0, 20);
+    const diag = new Map<string, string>();
+    if (faultyInv.length) {
+      try {
+        const t = await call(env, 'getDeviceRealTimeData', { token, device_type: 1, ps_key_list: faultyInv.map((d) => d.ps_key), point_id_list: ['4', '5', '7', '18', '19', '20', '89'] });
+        for (const raw of ((t?.device_point_list ?? []) as any[])) {
+          const p = raw?.device_point ?? raw;
+          const code = diagnoseInverter((n) => { const v = Number(p?.[`p${n}`]); return Number.isFinite(v) ? v : null; });
+          if (code) diag.set(String(p.ps_key), code);
+        }
+      } catch { /* diagnosis is best-effort */ }
+    }
+    return devs.flatMap((d) => {
+      const dx = diag.get(String(d.ps_key));
+      if (dx) return [{ code: dx, text: `${DIAG_TEXT[dx]} — ${String(d.device_name || d.device_sn || 'إنفرتر')}${d.device_sn ? ` (${d.device_sn})` : ''}`, at }];
       const name = String(d.device_name || d.device_sn || d.ps_key || 'جهاز');
       const sn = d.device_sn ? ` (${d.device_sn})` : '';
       const fault = Number(d.dev_fault_status) === 1 || Number(d.dev_fault_status) === 2;
