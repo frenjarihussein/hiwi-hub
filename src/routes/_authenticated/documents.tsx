@@ -370,11 +370,12 @@ function DocumentsPage() {
   const addProducts = (ps: any[]) => {
     const sale = ["sale", "quote", "sale_return"].includes(form.doc_type);
     const cost = ["purchase", "purchase_return", "opening_inventory", "closing_inventory"].includes(form.doc_type);
+    const stockCost = ["transfer", "stock_out", "stock_in"].includes(form.doc_type);
     setLines((cur) => {
       const have = new Set(cur.map((l) => l.product_id));
       const add = ps.filter((p) => !have.has(p.id)).map((p) => ({
         product_id: p.id, qty: "1", expiry_date: "",
-        unit_price: String(sale ? priceForLevel(p, partnerLevel) || p.last_purchase_price || 0 : cost ? p.last_purchase_price || p.purchase_price || p.avg_cost || 0 : 0),
+        unit_price: String(sale ? priceForLevel(p, partnerLevel) || p.last_purchase_price || 0 : cost ? p.last_purchase_price || p.purchase_price || p.avg_cost || 0 : stockCost ? p.avg_cost || p.last_purchase_price || p.purchase_price || 0 : 0),
       }));
       if (!add.length) toast.info("لا توجد مواد جديدة لإضافتها");
       else toast.success(`أضيفت ${add.length} مادة`);
@@ -1556,7 +1557,7 @@ function DocumentsPage() {
                     next[idx] = { ...cur, qty: String(Number(cur.qty || 0) + 1) };
                     return setLines(next);
                   }
-                  const price = form.doc_type === "sale" || form.doc_type === "sale_return" ? priceForLevel(p, partnerLevel) || p.last_purchase_price : form.doc_type === "purchase" || form.doc_type === "purchase_return" ? p.last_purchase_price || p.purchase_price || p.avg_cost : 0;
+                  const price = form.doc_type === "sale" || form.doc_type === "sale_return" ? priceForLevel(p, partnerLevel) || p.last_purchase_price : form.doc_type === "purchase" || form.doc_type === "purchase_return" ? p.last_purchase_price || p.purchase_price || p.avg_cost : ["transfer", "stock_out", "stock_in"].includes(form.doc_type) ? p.avg_cost || p.last_purchase_price || p.purchase_price || 0 : 0;
                   const periodInventory = ["opening_inventory", "closing_inventory"].includes(form.doc_type);
                   const row = { product_id: p.id, qty: "1", unit_price: String(periodInventory ? p.purchase_price || p.avg_cost || p.last_purchase_price || 0 : price ?? 0), expiry_date: "" };
                   setLines([...lines.filter((l) => l.product_id), row]);
@@ -1651,7 +1652,9 @@ function DocumentsPage() {
                                   ? String(priceForLevel(p, partnerLevel) || (p?.last_purchase_price ?? 0))
                                   : ["purchase", "purchase_return", "opening_inventory", "closing_inventory"].includes(form.doc_type)
                                     ? String(p?.last_purchase_price || p?.purchase_price || p?.avg_cost || 0)
-                                    : l.unit_price,
+                                    : ["transfer", "stock_out", "stock_in"].includes(form.doc_type)
+                                      ? String(p?.avg_cost || p?.last_purchase_price || p?.purchase_price || 0)
+                                      : l.unit_price,
                             };
                             setLines(next);
                           }}
