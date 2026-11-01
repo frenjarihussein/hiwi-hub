@@ -28,9 +28,12 @@ function jwt(secret: string, role: string) {
 
 // Secrets persist per install so sessions survive restarts.
 mkdirSync(dataDir, { recursive: true });
+// stack/jwt-secret (written by CI) must match the anon key baked into the UI build.
 const secretsFile = join(dataDir, "secrets.json");
+const bakedJwt = join(stack, "jwt-secret");
 if (!existsSync(secretsFile)) {
-  writeFileSync(secretsFile, JSON.stringify({ jwt: randomBytes(32).toString("hex"), db: randomBytes(16).toString("hex") }));
+  const jwtSecret = existsSync(bakedJwt) ? readFileSync(bakedJwt, "utf8").trim() : randomBytes(32).toString("hex");
+  writeFileSync(secretsFile, JSON.stringify({ jwt: jwtSecret, db: randomBytes(16).toString("hex") }));
 }
 const secrets = JSON.parse(readFileSync(secretsFile, "utf8"));
 const ANON = jwt(secrets.jwt, "anon");
@@ -107,7 +110,8 @@ async function main() {
   const appCfg = join(stack, "app-cmd.json");
   if (existsSync(appCfg)) {
     const { cmd, args: a = [] } = JSON.parse(readFileSync(appCfg, "utf8"));
-    run("app", cmd, a, {
+    const rel = (p: string) => (p.startsWith("./") ? join(stack, p.slice(2)) : p);
+    run("app", rel(cmd), a.map(rel), {
       PORT: String(APP_PORT), HOST: "127.0.0.1",
       SUPABASE_URL: `http://127.0.0.1:${GATEWAY_PORT}`, SUPABASE_PUBLISHABLE_KEY: ANON, SUPABASE_SERVICE_ROLE_KEY: SERVICE,
     });

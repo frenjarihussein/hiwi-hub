@@ -23,6 +23,7 @@
     "active": true,
     "targets": ["nsis", "msi"],
     "externalBin": ["binaries/yousef-server"],
-    "resources": ["../stack/**/*"]
+    "resources": { "../stack/": "stack/" },
+    "icon": ["icons/icon.png", "icons/icon.ico"]
   }
 }
