@@ -1,1 +1,3 @@
 - Tauri v2 shell launches a bundled local stack sidecar (Postgres+PostgREST+GoTrue+app server); kept outside the web build so the cloud app is unaffected.
+- Desktop builds set VITE_DESKTOP=1; DesktopLicenseGate verifies Ed25519 keys (public key in desktop-license.ts, private in DESKTOP_LICENSE_PRIVATE_KEY) bound to the sidecar /__device fingerprint, and reports to /api/public/desktop-heartbeat when online — offline activation without trusting the client.
+- lib.rs is shared by Windows (sidecar, cfg(desktop)) and Android (tauri.android.conf.json, mobile/ server picker for cloud or LAN) — one Tauri crate for both.

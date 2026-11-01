@@ -1,0 +1,45 @@
+name: Build Android app
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["android-v*"]
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: android-actions/setup-android@v3
+      - name: Install NDK
+        run: sdkmanager "ndk;27.0.12077973" "platforms;android-34" "build-tools;34.0.0"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: desktop/src-tauri }
+
+      - name: Build APK
+        working-directory: desktop/src-tauri
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+        run: |
+          cargo install tauri-cli --version "^2" --locked
+          cargo tauri icon ../../public/app-icon-512.png -o icons
+          cargo tauri android init --ci
+          cargo tauri android build --apk --ci
+
+      - name: Sign APK (debug key, for direct install)
+        run: |
+          APK=$(find desktop/src-tauri/gen/android -name "*-unsigned.apk" | head -1)
+          keytool -genkeypair -keystore ys.jks -storepass yousef123 -keypass yousef123 -alias ys -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Yousef Soft"
+          BT=$ANDROID_HOME/build-tools/34.0.0
+          $BT/zipalign -f 4 "$APK" aligned.apk
+          $BT/apksigner sign --ks ys.jks --ks-pass pass:yousef123 --out YousefSoft.apk aligned.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YousefSoft-Android
+          path: YousefSoft.apk
