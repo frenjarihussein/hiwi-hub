@@ -18,6 +18,7 @@ import { startOfflineApp } from "@/lib/pwa";
 import { OfflineStatus } from "@/components/OfflineStatus";
 import { GlobalWorkProgress } from "@/components/GlobalWorkProgress";
 import { setOfflineScope } from "@/lib/offline-store";
+import { DesktopLicenseGate } from "@/components/DesktopLicenseGate";
 installErrorActions();
 
 import { supabase } from "@/integrations/supabase/client";
@@ -147,7 +148,7 @@ function RootComponent() {
         <OfflineStatus />
         <GlobalWorkProgress />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <DesktopLicenseGate><Outlet /></DesktopLicenseGate>
         <Toaster position="top-center" />
       </I18nProvider>
     </QueryClientProvider>
