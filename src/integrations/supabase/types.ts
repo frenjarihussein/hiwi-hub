@@ -1161,6 +1161,89 @@ export type Database = {
           },
         ]
       }
+      desktop_devices: {
+        Row: {
+          app_version: string | null
+          company_name: string | null
+          customer: string | null
+          device_id: string
+          first_seen: string
+          last_ip: string | null
+          last_seen: string
+          license_id: string | null
+          platform: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          company_name?: string | null
+          customer?: string | null
+          device_id: string
+          first_seen?: string
+          last_ip?: string | null
+          last_seen?: string
+          license_id?: string | null
+          platform?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          company_name?: string | null
+          customer?: string | null
+          device_id?: string
+          first_seen?: string
+          last_ip?: string | null
+          last_seen?: string
+          license_id?: string | null
+          platform?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desktop_devices_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "desktop_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      desktop_licenses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer: string
+          device_id: string
+          expires_at: string | null
+          id: string
+          license_key: string
+          notes: string | null
+          plan: string
+          revoked: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer: string
+          device_id: string
+          expires_at?: string | null
+          id?: string
+          license_key: string
+          notes?: string | null
+          plan?: string
+          revoked?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer?: string
+          device_id?: string
+          expires_at?: string | null
+          id?: string
+          license_key?: string
+          notes?: string | null
+          plan?: string
+          revoked?: boolean
+        }
+        Relationships: []
+      }
       doc_patterns: {
         Row: {
           accounts: Json
