@@ -34,6 +34,7 @@ import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { costRules } from "@/lib/purchase-cost-policy";
 import { ReceiptTemplateCard } from "@/components/ReceiptTemplateCard";
+import { ExternalHostingCard } from "@/components/ExternalHostingCard";
 
 type Search = { tab?: string | undefined; sec?: string | undefined };
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -308,6 +309,7 @@ function SettingsPage() {
   }
   if (t && admin) mains.push({ v: "data", l: "البيانات", secs: [
     { v: "files", l: "ملفات البيانات", node: <DataFilesCard tenantName={me!.tenantName ?? ""} /> },
+    { v: "hosting", l: "الاستضافة والربط الخارجي", node: <ExternalHostingCard /> },
     { v: "backup", l: "النسخ الاحتياطي", node: (
       <div className="mb-8">
         <PageHeader title={tr("النسخ الاحتياطي والاسترجاع")}  subtitle={tr("تنزيل كل بيانات الشركة في ملف Excel (ورقة لكل جدول)، أو استرجاعها من ملف سابق")}  />
