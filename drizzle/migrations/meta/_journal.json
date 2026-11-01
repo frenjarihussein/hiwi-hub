@@ -239,6 +239,13 @@
       "when": 1793516540478,
       "tag": "0033_posting_fixes_transfer_sale",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793518517534,
+      "tag": "0034_sale_cogs_per_warehouse",
+      "breakpoints": true
     }
   ]
 }
