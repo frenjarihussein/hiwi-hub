@@ -36,3 +36,21 @@ export function buildRows(products: StProduct[], warehouses: string[], bal: Reco
 export function totals(rows: StRow[]) {
   return rows.reduce((t, r) => ({ book: t.book + r.bookValue, actual: t.actual + (r.actualValue ?? r.bookValue), diff: t.diff + (r.diffValue ?? 0) }), { book: 0, actual: 0, diff: 0 });
 }
+
+export type CostMove = { product_id: string; direction: string; qty: number | string; unit_cost: number | string | null; move_date?: string | null; created_at?: string | null };
+/** Moving weighted-average cost per product, replayed only from the stock moves that still exist (deleted invoices no longer affect it). */
+export function costFromMoves(moves: CostMove[]): Record<string, number> {
+  const sorted = [...moves].sort((a, b) => String(a.move_date ?? "").localeCompare(String(b.move_date ?? "")) || String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+  const st: Record<string, { q: number; c: number }> = {};
+  for (const m of sorted) {
+    const s = (st[m.product_id] ??= { q: 0, c: 0 });
+    const q = Number(m.qty) || 0;
+    if (m.direction === "in") {
+      const u = Number(m.unit_cost) || 0;
+      const base = Math.max(s.q, 0);
+      s.c = base + q > 0 ? (base * s.c + q * u) / (base + q) : u;
+      s.q += q;
+    } else s.q -= q;
+  }
+  return Object.fromEntries(Object.entries(st).map(([k, v]) => [k, Math.round(v.c * 10000) / 10000]));
+}

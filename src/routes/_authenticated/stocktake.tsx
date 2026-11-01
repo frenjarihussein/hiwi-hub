@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { printDocument } from "@/lib/print";
 import { exportCsv } from "@/lib/export";
-import { buildRows, inCategories, totals } from "@/lib/stocktake-report";
+import { buildRows, costFromMoves, inCategories, totals } from "@/lib/stocktake-report";
 import { linkedAccounts, post2 } from "@/lib/auto-entries";
 import { useBaseCurrency } from "@/lib/currencies";
 import { BarcodeInput, findByCode } from "@/components/BarcodeInput";
@@ -58,14 +58,17 @@ function StocktakePage() {
       const [p, w, m, a] = await Promise.all([
         scope(db.from("products").select("id,sku,barcode,name,unit,qty_on_hand,reorder_level,avg_cost,is_group,parent_id,item_type"), me?.tenantId).eq("is_active", true).order("name"),
         scope(db.from("warehouses").select("id,name").eq("is_group", false), me?.tenantId).order("name"),
-        scope(db.from("stock_moves").select("product_id,warehouse_id,direction,qty"), me?.tenantId).range(0, 199999),
+        scope(db.from("stock_moves").select("product_id,warehouse_id,direction,qty,unit_cost,move_date,created_at"), me?.tenantId).range(0, 199999),
         scope(db.from("accounts").select("id,code,name,is_group"), me?.tenantId).eq("is_group", false).order("code"),
       ]);
       const bal: Record<string, number> = {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (m.data ?? []).forEach((x: any) => { const k = `${x.warehouse_id}|${x.product_id}`; bal[k] = (bal[k] ?? 0) + (x.direction === "in" ? 1 : -1) * Number(x.qty); });
+      // Cost comes only from the stock moves that still exist.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const all = ((p.data ?? []) as any[]).filter((x) => x.item_type !== "service");
+      const mc = costFromMoves((m.data ?? []) as any[]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const all = ((p.data ?? []) as any[]).filter((x) => x.item_type !== "service").map((x) => ({ ...x, avg_cost: mc[x.id] ?? 0 }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return { all, products: all.filter((x) => !x.is_group), groups: all.filter((x) => x.is_group), warehouses: (w.data ?? []) as any[], accounts: (a.data ?? []) as any[], bal };
     },
