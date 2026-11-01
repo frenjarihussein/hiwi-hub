@@ -13,6 +13,11 @@ export function startLocalProxy(anon: string, appPort: number, gatewayPort: numb
       if (!privateIp || !hosts.has(url.hostname)) return new Response("Forbidden host", { status: 403 });
       const origin = request.headers.get("origin");
       if (origin && origin !== url.origin) return new Response("Forbidden origin", { status: 403 });
+      // The first owner must be created physically on the main PC, not raced from LAN.
+      if (!loopback && url.pathname.startsWith("/_serverFn/")) {
+        const owner = await fetch(`http://127.0.0.1:${gatewayPort}/__owner-ready`);
+        if (!owner.ok || !(await owner.json()).ready) return new Response("Create the owner on the main PC first", { status: 403 });
+      }
       const backend = url.pathname.startsWith("/__backend/");
       const path = backend ? url.pathname.slice("/__backend".length) : url.pathname;
       if (backend && path === "/__config") return new Response("Not found", { status: 404 });

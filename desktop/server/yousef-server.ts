@@ -10,6 +10,7 @@ import net from "node:net";
 import { verifyLicense } from "../../src/lib/desktop-license";
 import { localStorageApi } from "./local-storage";
 import { startLocalProxy } from "./local-proxy";
+import postgres from "postgres";
 
 const args = process.argv.slice(2);
 const dataIndex = args.indexOf("--data-dir");
@@ -78,6 +79,11 @@ async function main() {
   await waitPort(PG_PORT);
 
   const schemaReady = join(dataDir, "schema.ready");
+  // Earlier installers did not write markers. Never restore the base dump over their books.
+  if (!firstRun && !existsSync(schemaReady)) {
+    const r = spawnSync(join(pgBin, process.platform === "win32" ? "psql.exe" : "psql"), ["-tAc", "SELECT to_regclass('public.documents') IS NOT NULL AND to_regclass('public.profiles') IS NOT NULL", DB_URL("postgres")], { encoding: "utf8", windowsHide: true });
+    if (r.status === 0 && r.stdout.trim() === "t") writeFileSync(schemaReady, "1");
+  }
   if (!existsSync(schemaReady)) {
     log("creating roles and auth schema");
     const boot = join(dataDir, "bootstrap.sql");
@@ -160,6 +166,7 @@ function deviceId() {
 
 // Single URL like Supabase: /rest/v1 -> PostgREST, /auth/v1 -> GoTrue.
 function startGateway() {
+  const internalDb = postgres(DB_URL("postgres"), { max: 1 });
   const storage = localStorageApi(DB_URL("postgres"), join(dataDir, "files"), secrets.jwt, `http://127.0.0.1:${AUTH_PORT}`);
   const stateFile = join(dataDir, "license.json");
   const readState = () => existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : { key: "", seen: 0, revoked: false };
@@ -199,6 +206,10 @@ function startGateway() {
       const cors = { "access-control-allow-origin": "http://127.0.0.1:3000", "access-control-allow-headers": "authorization,apikey,content-type,x-client-info,x-upsert", "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS" };
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       if (u.pathname === "/__config") return Response.json({ anon: ANON });
+      if (u.pathname === "/__owner-ready") {
+        const [row] = await internalDb`select exists(select 1 from public.profiles where is_super_admin=true) as ready`;
+        return Response.json(row);
+      }
       if (u.pathname === "/__device") return Response.json({ device: deviceId() }, { headers: cors });
       if (u.pathname === "/__license" && req.method === "GET") return Response.json(await check());
       if (u.pathname === "/__license" && req.method === "POST") {

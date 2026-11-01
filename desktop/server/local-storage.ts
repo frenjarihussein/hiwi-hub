@@ -10,7 +10,9 @@ export function localStorageApi(dbUrl: string, directory: string, secret: string
   const validPath = (s: string) => s.length > 0 && s.length < 1024 && !s.split("/").some(p => !p || p === "." || p === "..");
   return async (request: Request): Promise<Response> => {
     const u = new URL(request.url);
-    const parts = u.pathname.slice("/storage/v1/".length).split("/").map(decodeURIComponent);
+    let parts: string[];
+    try { parts = u.pathname.slice("/storage/v1/".length).split("/").map(decodeURIComponent); }
+    catch { return new Response("Bad path", { status: 400 }); }
     const [kind, action] = parts;
     if (kind !== "object") return Response.json({ message: "Not found" }, { status: 404 });
     // Signed downloads are scoped to one immutable object ID and expire locally.
@@ -18,7 +20,7 @@ export function localStorageApi(dbUrl: string, directory: string, secret: string
       const token = u.searchParams.get("token") || "";
       const [id, expires, signature] = token.split(".");
       const expected = sign(`${id}.${expires}`);
-      if (!id || !Number.isFinite(Number(expires)) || Number(expires) < Date.now() || !signature
+      if (!id || !/^[0-9a-f-]{36}$/i.test(id) || !Number.isFinite(Number(expires)) || Number(expires) < Date.now() || !signature
         || signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return new Response("Forbidden", { status: 403 });
       const [row] = await sql`select id, metadata from storage.objects where id=${id}::uuid and bucket_id=${parts[2]} and name=${parts.slice(3).join("/")}`;
       if (!row) return new Response("Not found", { status: 404 });
@@ -33,6 +35,7 @@ export function localStorageApi(dbUrl: string, directory: string, secret: string
     const bucket = parts[operation === "file" ? 1 : 2];
     const name = parts.slice(operation === "file" ? 2 : 3).join("/");
     if (!["attachments", "backups"].includes(bucket || "")) return new Response("Forbidden", { status: 403 });
+    let uploadedId: string | undefined;
     try {
       return await sql.begin(async tx => {
         await tx`select set_config('request.jwt.claims', ${JSON.stringify({ sub: user.id, role: "authenticated" })}, true)`;
@@ -67,6 +70,7 @@ export function localStorageApi(dbUrl: string, directory: string, secret: string
           if (data.byteLength > 25 * 1024 * 1024) return new Response("File too large", { status: 413 });
           const metadata = { size: data.byteLength, mimetype: file instanceof File ? file.type : request.headers.get("content-type") };
           const [row] = await tx`insert into storage.objects (bucket_id,name,owner,metadata) values (${bucket},${name},${user.id}::uuid,${tx.json(metadata)}) returning id`;
+          uploadedId = row.id;
           await mkdir(directory, { recursive: true });
           await writeFile(join(directory, row.id), new Uint8Array(data));
           return Response.json({ Id: row.id, Key: `${bucket}/${name}` });
@@ -78,6 +82,9 @@ export function localStorageApi(dbUrl: string, directory: string, secret: string
         }
         return new Response("Unsupported operation", { status: 405 });
       });
-    } catch { return Response.json({ message: "Storage operation denied or failed" }, { status: 403 }); }
+    } catch {
+      if (uploadedId) await unlink(join(directory, uploadedId)).catch(() => {});
+      return Response.json({ message: "Storage operation denied or failed" }, { status: 403 });
+    }
   };
 }
