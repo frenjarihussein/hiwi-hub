@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Yousef Soft</title>
 <style>
   body{margin:0;font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center}
@@ -17,27 +17,27 @@
 <body>
 <div class="card">
   <h1>يوسف سوفت</h1>
-  <p>اختر طريقة الاتصال. يُحفظ اختيارك ويمكن تغييره بإعادة تثبيت التطبيق أو مسح بياناته.</p>
+  <p>الاتصال</p>
+  <button class="alt" id="saved" hidden>آخر خادم</button>
   <button id="cloud">الخادم السحابي (عبر الإنترنت)</button>
   <button class="alt" id="showLan">خادم الشبكة الداخلية (جهاز الشركة)</button>
   <div id="lan">
-    <input id="ip" placeholder="192.168.1.10:3000" />
+    <input id="ip" aria-label="عنوان جهاز الشركة" placeholder="192.168.1.10:3001" />
     <button id="go">اتصال</button>
   </div>
+  <p id="error" role="alert"></p>
 </div>
-<script>
+<script type="module">
+  import { serverUrl } from "./server-url.js";
   const CLOUD = "https://yousef-soft30.lovable.app/auth";
   const saved = localStorage.getItem("ys.server");
   const open = (u) => { localStorage.setItem("ys.server", u); location.replace(u); };
-  if (saved && !location.hash.includes("choose")) location.replace(saved);
+  if (saved) { const button = document.getElementById("saved"); button.hidden = false; button.textContent = "متابعة: " + new URL(saved).host; button.onclick = () => open(saved); }
   document.getElementById("cloud").onclick = () => open(CLOUD);
   document.getElementById("showLan").onclick = () => { document.getElementById("lan").style.display = "block"; };
   document.getElementById("go").onclick = () => {
-    let v = document.getElementById("ip").value.trim();
-    if (!v) return;
-    if (!/^https?:\/\//.test(v)) v = "http://" + v;
-    if (!/:\d+/.test(v.replace(/^https?:\/\//, ""))) v += ":3000";
-    open(v.replace(/\/$/, "") + "/auth");
+    try { open(serverUrl(document.getElementById("ip").value)); }
+    catch (e) { document.getElementById("error").textContent = e.message || "العنوان غير صحيح"; }
   };
 </script>
 </body>
