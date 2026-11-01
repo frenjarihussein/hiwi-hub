@@ -1,0 +1,1 @@
+- Tauri v2 shell launches a bundled local stack sidecar (Postgres+PostgREST+GoTrue+app server); kept outside the web build so the cloud app is unaffected.
