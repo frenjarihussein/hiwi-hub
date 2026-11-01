@@ -232,6 +232,13 @@
       "when": 1793455097061,
       "tag": "0032_stocktake_unpost_allowed",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793516540478,
+      "tag": "0033_posting_fixes_transfer_sale",
+      "breakpoints": true
     }
   ]
 }
