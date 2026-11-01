@@ -92,7 +92,12 @@ export function fmtMoney(v: number | string | null | undefined, currency = "USD"
 
 export function fmtDate(v: string | null | undefined) {
   if (!v) return "—";
-  return new Date(v).toLocaleDateString("ar-SY", { year: "numeric", month: "2-digit", day: "2-digit" });
+  // Latin digits as YYYY/MM/DD: Arabic-Indic digits with bidi marks mixed with doc numbers in RTL text.
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+  if (m) return `${m[1]}/${m[2]}/${m[3]}`;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export function fmtDateTime(v: string | null | undefined) {

@@ -1024,8 +1024,8 @@ function DocumentsPage() {
             <div key={d.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
               <div className="min-w-0 flex-1 cursor-pointer" onClick={() => startEdit(d)}>
                 <p className="truncate font-medium">
-                  {DOC_TYPES.find((t) => t.value === d.doc_type)?.label} #{d.doc_no}
-                  <span className="mx-2 text-xs font-normal text-muted-foreground">{fmtDate(d.doc_date)}{d.doc_time ? ` ${String(d.doc_time).slice(0, 5)}` : ""}</span>
+                  {DOC_TYPES.find((t) => t.value === d.doc_type)?.label} <bdi dir="ltr">#{d.doc_no}</bdi>
+                  <span className="mx-2 text-xs font-normal text-muted-foreground">· <bdi dir="ltr">{fmtDate(d.doc_date)}</bdi>{d.doc_time ? <> · <bdi dir="ltr">{String(d.doc_time).slice(0, 5)}</bdi></> : null}</span>
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -1101,7 +1101,7 @@ function DocumentsPage() {
               <tr key={d.id} className="border-t">
                 <td className="px-3 py-2">{DOC_TYPES.find((t) => t.value === d.doc_type)?.label}</td>
                 <td className="px-3 py-2">{d.doc_no}</td>
-                <td className="px-3 py-2">{fmtDate(d.doc_date)}{d.doc_time ? ` ${String(d.doc_time).slice(0, 5)}` : ""}</td>
+                <td className="px-3 py-2"><bdi dir="ltr">{fmtDate(d.doc_date)}</bdi>{d.doc_time ? <> · <bdi dir="ltr">{String(d.doc_time).slice(0, 5)}</bdi></> : null}</td>
                 <td className="px-3 py-2">
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {(ref.data?.partners ?? []).find((p: any) => p.id === d.partner_id)?.name ?? "—"}
