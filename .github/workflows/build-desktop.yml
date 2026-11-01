@@ -52,7 +52,7 @@ jobs:
         run: |
           git clone --depth 1 --branch "$AUTH_TAG" https://github.com/supabase/auth.git /tmp/auth
           cd /tmp/auth && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o "$GITHUB_WORKSPACE/desktop/stack/gotrue.exe" .
-          cp -r migrations "$GITHUB_WORKSPACE/desktop/stack/auth-migrations"
+          cp -r migrations "$GITHUB_WORKSPACE/desktop/stack/migrations"
 
       - name: Build app for local Node server
         env:
