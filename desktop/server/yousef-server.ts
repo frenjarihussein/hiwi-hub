@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync, readdir
 import { dirname, join } from "node:path";
 import { randomBytes, createHmac } from "node:crypto";
 import net from "node:net";
+import os from "node:os";
 import { verifyLicense } from "../../src/lib/desktop-license";
 import { localStorageApi } from "./local-storage";
 import { startLocalProxy } from "./local-proxy";
@@ -57,24 +58,65 @@ function waitPort(port: number, tries = 120) {
     attempt(tries);
   });
 }
-function psql(sqlFile: string) {
-  const r = spawnSync(join(stack, "pgsql", "bin", process.platform === "win32" ? "psql.exe" : "psql"),
-    ["-v", "ON_ERROR_STOP=1", "-q", "-f", sqlFile, DB_URL("postgres")], { stdio: "inherit", windowsHide: true });
-  if (r.status !== 0) throw new Error(`failed applying ${sqlFile}`);
+// Async so the progress endpoint keeps answering during long first-run steps.
+function runAsync(cmd: string, a: string[]) {
+  return new Promise<number>((ok) => {
+    const c = spawn(cmd, a, { stdio: "inherit", windowsHide: true });
+    c.on("exit", (code) => ok(code ?? 1)); c.on("error", () => ok(1));
+  });
 }
+async function psql(sqlFile: string) {
+  const code = await runAsync(join(stack, "pgsql", "bin", process.platform === "win32" ? "psql.exe" : "psql"),
+    ["-v", "ON_ERROR_STOP=1", "-q", "-f", sqlFile, DB_URL("postgres")]);
+  if (code !== 0) throw new Error(`failed applying ${sqlFile}`);
+}
+
+// First-run progress for the loading window (http://127.0.0.1:54319). Each step has an expected
+// duration; progress inside a step creeps toward its end so the bar never jumps backwards.
+const STEPS = [
+  { id: "init", label: "تهيئة محرك قاعدة البيانات", sec: 15 },
+  { id: "start", label: "تشغيل قاعدة البيانات", sec: 5 },
+  { id: "roles", label: "إنشاء الصلاحيات والأمان", sec: 3 },
+  { id: "auth", label: "تشغيل خدمة الدخول", sec: 6 },
+  { id: "schema", label: "بناء الجداول والقيود المحاسبية", sec: 60 },
+  { id: "services", label: "تشغيل الخدمات المحلية", sec: 6 },
+  { id: "app", label: "تشغيل واجهة البرنامج", sec: 10 },
+] as const;
+const progress = { step: 0, stepStart: Date.now(), skip: new Set<string>(), done: false, error: "", started: Date.now() };
+function phase(id: (typeof STEPS)[number]["id"]) {
+  progress.step = STEPS.findIndex((s) => s.id === id); progress.stepStart = Date.now();
+  log(`phase ${id}`);
+}
+function progressSnapshot() {
+  const active = STEPS.filter((s) => !progress.skip.has(s.id));
+  const total = active.reduce((t, s) => t + s.sec, 0) || 1;
+  const cur = STEPS[progress.step]!;
+  let before = 0; for (const s of active) { if (s.id === cur.id) break; before += s.sec; }
+  const elapsed = (Date.now() - progress.stepStart) / 1000;
+  const inStep = cur.sec * (1 - Math.exp(-elapsed / cur.sec)) * 0.95; // asymptotic, never completes alone
+  const pct = progress.done ? 100 : Math.min(99, Math.round(((before + inStep) / total) * 100));
+  const remaining = progress.done ? 0 : Math.max(1, Math.round(total - before - Math.max(inStep, Math.min(elapsed, cur.sec))) + Math.max(0, Math.round(elapsed - cur.sec) > 0 ? 3 : 0));
+  return { pct, label: cur.label, step: active.findIndex((s) => s.id === cur.id) + 1, steps: active.length, remaining, done: progress.done, error: progress.error, elapsed: Math.round((Date.now() - progress.started) / 1000) };
+}
+try {
+  Bun.serve({ hostname: "127.0.0.1", port: 54319, fetch: () => Response.json(progressSnapshot(), { headers: { "access-control-allow-origin": "*", "cache-control": "no-store" } }) });
+} catch { /* progress display is optional */ }
 
 async function main() {
   const pgBin = join(stack, "pgsql", "bin");
   const pgData = join(dataDir, "pgdata");
   const firstRun = !existsSync(join(pgData, "PG_VERSION"));
 
+  if (!firstRun) progress.skip.add("init");
+  if (existsSync(join(dataDir, "schema.ready"))) { progress.skip.add("roles"); progress.skip.add("schema"); }
   if (firstRun) {
-    log("initialising database");
+    phase("init");
     const pw = join(dataDir, ".pw"); writeFileSync(pw, secrets.db);
-    const r = spawnSync(join(pgBin, "initdb"), ["-D", pgData, "-U", "postgres", "--pwfile", pw, "-E", "UTF8", "-A", "scram-sha-256"], { stdio: "inherit", windowsHide: true });
+    const code = await runAsync(join(pgBin, "initdb"), ["-D", pgData, "-U", "postgres", "--pwfile", pw, "-E", "UTF8", "-A", "scram-sha-256"]);
     unlinkSync(pw);
-    if (r.status !== 0) throw new Error("initdb failed");
+    if (code !== 0) throw new Error("initdb failed");
   }
+  phase("start");
   run("postgres", join(pgBin, "postgres"), ["-D", pgData, "-p", String(PG_PORT), "-h", "127.0.0.1"]);
   await waitPort(PG_PORT);
 
@@ -85,13 +127,14 @@ async function main() {
     if (r.status === 0 && r.stdout.trim() === "t") writeFileSync(schemaReady, "1");
   }
   if (!existsSync(schemaReady)) {
-    log("creating roles and auth schema");
+    phase("roles");
     const boot = join(dataDir, "bootstrap.sql");
     writeFileSync(boot, bootstrapSql(secrets.db));
-    psql(boot);
+    await psql(boot);
     unlinkSync(boot);
   }
 
+  phase("auth");
   // GoTrue creates/migrates its own auth.* tables.
   run("gotrue", exe("gotrue"), [], {
     GOTRUE_API_HOST: "127.0.0.1", PORT: String(AUTH_PORT), API_EXTERNAL_URL: `http://127.0.0.1:${GATEWAY_PORT}/auth/v1`,
@@ -104,23 +147,24 @@ async function main() {
   await waitPort(AUTH_PORT);
 
   if (!existsSync(schemaReady)) {
-    psql(join(stack, "local-compat.sql"));
+    phase("schema");
+    await psql(join(stack, "local-compat.sql"));
     const schema = join(stack, "hiwi-hub-schema-v2.sql");
     if (!existsSync(schema)) throw new Error("schema file missing in stack/");
-    log("applying application schema");
     // A failed restore rolls back fully; next launch can safely retry.
     const transactional = join(dataDir, "restore.sql");
     writeFileSync(transactional, "BEGIN;\n" + readFileSync(schema, "utf8") + "\nCOMMIT;\n");
-    psql(transactional);
+    await psql(transactional);
     unlinkSync(transactional);
     writeFileSync(schemaReady, "1");
   }
   const migrations = join(stack, "local-migrations");
   if (existsSync(migrations)) for (const file of readdirSync(migrations).filter(f => f.endsWith(".sql")).sort()) {
     const marker = join(dataDir, `migration-${file}.done`);
-    if (!existsSync(marker)) { psql(join(migrations, file)); writeFileSync(marker, "1"); }
+    if (!existsSync(marker)) { await psql(join(migrations, file)); writeFileSync(marker, "1"); }
   }
 
+  phase("services");
   run("postgrest", exe("postgrest"), [], {
     PGRST_DB_URI: DB_URL("authenticator"), PGRST_DB_SCHEMAS: "public", PGRST_DB_ANON_ROLE: "anon",
     PGRST_JWT_SECRET: secrets.jwt, PGRST_SERVER_HOST: "127.0.0.1", PGRST_SERVER_PORT: String(REST_PORT),
@@ -129,6 +173,7 @@ async function main() {
 
   startGateway();
 
+  phase("app");
   // App server: command set in stack/app-cmd.json, e.g. {"cmd":"node","args":["app/server.js"]}
   const appCfg = join(stack, "app-cmd.json");
   if (existsSync(appCfg)) {
@@ -141,6 +186,7 @@ async function main() {
   } else throw new Error("stack/app-cmd.json missing");
   await waitPort(APP_PORT);
   startLocalProxy(ANON, APP_PORT, GATEWAY_PORT);
+  progress.done = true;
   log(`ready. anon key written to ${join(dataDir, "anon.key")}`);
   writeFileSync(join(dataDir, "anon.key"), ANON);
 }
@@ -162,6 +208,17 @@ function deviceId() {
   const h = createHmac("sha256", "yousef-device").update(raw + "|" + (process.env.COMPUTERNAME || "")).digest("hex").toUpperCase();
   cachedDevice = `YS-${h.slice(0, 4)}-${h.slice(4, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}`;
   return cachedDevice;
+}
+
+function deviceSpecs() {
+  let osName = `${os.type()} ${os.release()}`;
+  try {
+    const r = spawnSync("reg", ["query", "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "/v", "ProductName"], { encoding: "utf8", windowsHide: true });
+    const m = r.stdout?.match(/ProductName\s+REG_SZ\s+(.+)/); if (m) osName = `${m[1]!.trim()} (${os.release()})`;
+  } catch {}
+  let user = ""; try { user = os.userInfo().username; } catch {}
+  const cpus = os.cpus();
+  return { hostname: os.hostname(), user, os: osName, cpu: cpus[0]?.model?.trim() || "", cores: cpus.length, ram_gb: Math.round(os.totalmem() / 1073741824 * 10) / 10, arch: os.arch() };
 }
 
 // Single URL like Supabase: /rest/v1 -> PostgREST, /auth/v1 -> GoTrue.
@@ -186,7 +243,7 @@ function startGateway() {
       const s = readState();
       const verified = await verifyLicense(s.key, deviceId(), Date.now(), s.seen);
       if (!verified.ok && verified.reason !== "expired") return;
-      const r = await fetch("https://yousef-soft30.lovable.app/api/public/desktop-heartbeat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: deviceId(), license: s.key, version: "0.1.0", platform: "windows" }), signal: AbortSignal.timeout(10000) });
+      const r = await fetch("https://yousef-soft30.lovable.app/api/public/desktop-heartbeat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: deviceId(), license: s.key, version: "0.1.0", platform: "windows", specs: deviceSpecs() }), signal: AbortSignal.timeout(10000) });
       if (r.ok) {
         const response = await r.json() as { revoked: boolean; serverTime?: number };
         const current = readState();
@@ -219,6 +276,20 @@ function startGateway() {
         if (s.revoked && s.key === key) return Response.json({ ok: false, reason: "revoked" });
         const result = await verifyLicense(key, deviceId(), Date.now(), s.seen);
         if (result.ok) { saveState({ key, seen: Math.max(Date.now(), s.seen), revoked: false }); void report(); }
+        return Response.json(result);
+      }
+      if (u.pathname === "/__activate" && req.method === "POST") {
+        // Pre-generated code: must be checked online once, then the signed license works offline.
+        const body = await req.json().catch(() => ({})) as { code?: string };
+        let r: Response;
+        try {
+          r = await fetch("https://yousef-soft30.lovable.app/api/public/desktop-activate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: String(body.code || ""), device: deviceId(), specs: deviceSpecs(), version: "0.1.0" }), signal: AbortSignal.timeout(20000) });
+        } catch { return Response.json({ ok: false, reason: "offline" }); }
+        const out = await r.json().catch(() => ({})) as { license_key?: string; error?: string };
+        if (!r.ok || !out.license_key) return Response.json({ ok: false, reason: out.error || "invalid" });
+        const s = readState();
+        const result = await verifyLicense(out.license_key, deviceId(), Date.now(), s.seen);
+        if (result.ok) saveState({ key: out.license_key, seen: Math.max(Date.now(), s.seen), revoked: false });
         return Response.json(result);
       }
       if (u.pathname.startsWith("/rest/v1") || u.pathname.startsWith("/storage/v1")) {
@@ -263,4 +334,4 @@ ALTER ROLE postgres SET search_path = public, extensions;
 
 function shutdown(code = 0) { for (const c of children.reverse()) try { c.kill(); } catch {} process.exit(code); }
 process.on("SIGINT", () => shutdown()); process.on("SIGTERM", () => shutdown());
-main().catch((e) => { log(String(e)); shutdown(1); });
+main().catch((e) => { log(String(e)); progress.error = String(e); setTimeout(() => shutdown(1), 15000); });

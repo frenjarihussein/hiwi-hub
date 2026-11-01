@@ -1161,39 +1161,113 @@ export type Database = {
           },
         ]
       }
+      desktop_activation_codes: {
+        Row: {
+          batch: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          customer: string
+          days: number
+          id: string
+          license_id: string | null
+          plan: string
+          revoked: boolean
+          used_at: string | null
+          used_device: string | null
+        }
+        Insert: {
+          batch?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          customer: string
+          days?: number
+          id?: string
+          license_id?: string | null
+          plan?: string
+          revoked?: boolean
+          used_at?: string | null
+          used_device?: string | null
+        }
+        Update: {
+          batch?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          customer?: string
+          days?: number
+          id?: string
+          license_id?: string | null
+          plan?: string
+          revoked?: boolean
+          used_at?: string | null
+          used_device?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "desktop_activation_codes_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "desktop_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       desktop_devices: {
         Row: {
+          activated_at: string | null
+          activation_code: string | null
           app_version: string | null
           company_name: string | null
+          cpu: string | null
           customer: string | null
           device_id: string
           first_seen: string
+          hostname: string | null
           last_ip: string | null
           last_seen: string
           license_id: string | null
+          os_name: string | null
           platform: string | null
+          ram_gb: number | null
+          specs: Json | null
         }
         Insert: {
+          activated_at?: string | null
+          activation_code?: string | null
           app_version?: string | null
           company_name?: string | null
+          cpu?: string | null
           customer?: string | null
           device_id: string
           first_seen?: string
+          hostname?: string | null
           last_ip?: string | null
           last_seen?: string
           license_id?: string | null
+          os_name?: string | null
           platform?: string | null
+          ram_gb?: number | null
+          specs?: Json | null
         }
         Update: {
+          activated_at?: string | null
+          activation_code?: string | null
           app_version?: string | null
           company_name?: string | null
+          cpu?: string | null
           customer?: string | null
           device_id?: string
           first_seen?: string
+          hostname?: string | null
           last_ip?: string | null
           last_seen?: string
           license_id?: string | null
+          os_name?: string | null
           platform?: string | null
+          ram_gb?: number | null
+          specs?: Json | null
         }
         Relationships: [
           {
