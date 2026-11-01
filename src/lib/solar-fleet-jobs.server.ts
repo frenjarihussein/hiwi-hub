@@ -1,5 +1,5 @@
 import { withTenantBot } from './integrations.server';
-import { discoverStations, fetchSma, fetchSungrow } from './solar-providers.server';
+import { discoverStations, fetchSma, fetchSungrow, sungrowSession, type SungrowSession } from './solar-providers.server';
 import { combineReadings, matchingReading, newAlertText, type SolarUnit } from './solar-monitor';
 import { alarmKey, reportClock, teamReportRows } from './telegram-team';
 import { formatReport, REPORT_KINDS, sendTelegram, type ReportKind } from './telegram.server';
@@ -14,6 +14,9 @@ export async function syncFleetJob() {
   for (const account of accounts) {
     let sgCache: Promise<import('./integrations.server').SungrowEnv> | null = null;
     const sgEnv = () => (sgCache ??= import('./integrations.server').then(m => m.sungrowEnvFor(account.tenant_id)));
+    // Single login and plant list for the whole account; per-station logins exceeded the job time limit.
+    let sgSess: Promise<SungrowSession> | null = null;
+    const sgSession = () => (sgSess ??= sgEnv().then(sungrowSession));
     try {
       const tenant = (await admin.from('tenants').select('is_active,sub_end').eq('id',account.tenant_id).single()).data;
       if (!tenant?.is_active || String(tenant.sub_end) < new Date().toISOString().slice(0,10)) continue;
@@ -33,7 +36,7 @@ export async function syncFleetJob() {
           const units = [{ provider: account.provider as string, plant_id: monitor.plant_id as string, capacity_kwp: Number(monitor.capacity_kwp) }, ...((Array.isArray(monitor.extra_units) ? monitor.extra_units : []) as unknown as SolarUnit[]).map((u) => ({ provider: u.provider as string, plant_id: u.plant_id, capacity_kwp: Number(u.capacity_kwp) || 0 }))];
           // All inverters of the project must answer; partial totals would look like a production drop.
           const readings = [];
-          for (let i = 0; i < units.length; i += 6) readings.push(...await Promise.all(units.slice(i,i+6).map(async (u) => u.provider === 'sungrow' ? fetchSungrow(await sgEnv(), u.plant_id, u.capacity_kwp) : fetchSma(await smaEnv(), u.plant_id, u.capacity_kwp))));
+          for (let i = 0; i < units.length; i += 6) readings.push(...await Promise.all(units.slice(i,i+6).map(async (u) => u.provider === 'sungrow' ? fetchSungrow(await sgEnv(), u.plant_id, u.capacity_kwp, false, await sgSession()) : fetchSma(await smaEnv(), u.plant_id, u.capacity_kwp))));
           const reading = combineReadings(readings);
           if (!reading) throw new Error('No readings');
           if (!matchingReading(reading,false,account.provider)) throw new Error('Invalid reading');
