@@ -26,13 +26,13 @@ describe("stocktake report", () => {
 import { costFromMoves as cfm } from "./stocktake-report";
 describe("costFromMoves", () => {
   it("ignores deleted purchases: only opening remains", () => {
-    expect(cfm([{ product_id: "a", direction: "in", qty: 10, unit_cost: 5, move_date: "2026-01-01" }]).a).toBe(5);
+    expect(cfm([{ product_id: "a", direction: "in", qty: 10, unit_cost: 5, move_date: "2026-01-01" }])["a"]).toBe(5);
   });
   it("weights opening and purchase", () => {
     expect(cfm([
       { product_id: "a", direction: "in", qty: 10, unit_cost: 5, move_date: "2026-01-01" },
       { product_id: "a", direction: "out", qty: 5, unit_cost: 5, move_date: "2026-01-02" },
       { product_id: "a", direction: "in", qty: 5, unit_cost: 7, move_date: "2026-01-03" },
-    ]).a).toBe(6);
+    ])["a"]).toBe(6);
   });
 });
