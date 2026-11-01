@@ -253,6 +253,13 @@
       "when": 1793539025778,
       "tag": "0035_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793547432030,
+      "tag": "0036_desktop_activation_codes",
+      "breakpoints": true
     }
   ]
 }
