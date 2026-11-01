@@ -246,6 +246,13 @@
       "when": 1793518517534,
       "tag": "0034_sale_cogs_per_warehouse",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793539025778,
+      "tag": "0035_migration",
+      "breakpoints": true
     }
   ]
 }

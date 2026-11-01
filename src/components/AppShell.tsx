@@ -81,7 +81,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: "reports", label: "التقارير والكشوف", icon: LedgerIcon, items: ["/dashboard", "/reports", "/ledgers", "/audit"] },
   { id: "collab", label: "التواصل والتعاون", icon: MessagesSquare, items: ["/chat", "/notes", "/assistant", "/ai-drafts", "/approvals", "/collab", "/support"] },
   { id: "admin", label: "الإعدادات", icon: Settings, items: ["/settings", "/doc-patterns"] },
-  { id: "owner", label: "إدارة النظام", icon: ShieldCheck, items: ["/owner-dashboard", "/companies", "/subscriptions", "/owner-finance", "/owner-reports", "/notifications", "/support"] },
+  { id: "owner", label: "إدارة النظام", icon: ShieldCheck, items: ["/owner-dashboard", "/companies", "/subscriptions", "/owner-finance", "/owner-reports", "/desktop-licenses", "/notifications", "/support"] },
 ];
 
 export const QUICK_ACTIONS = [
@@ -110,6 +110,7 @@ export const NAV: NavItem[] = [
   { to: "/subscriptions", label: "الاشتراكات والمقبوضات", icon: Coins, superOnly: true },
   { to: "/owner-finance", label: "حسابات شركة البرمجيات", icon: WalletCards, superOnly: true },
   { to: "/owner-reports", label: "تقارير شركة البرمجيات", icon: WalletCards, superOnly: true },
+  { to: "/desktop-licenses", label: "تراخيص الديسكتوب", icon: ShieldCheck, superOnly: true },
   { to: "/notifications", label: "الإشعارات العامة", icon: Bell, superOnly: true },
   { to: "/assistant", label: "المساعد المالي الذكي", icon: Bot },
   { to: "/ai-drafts", label: "مسودات المساعد الذكي", icon: ClipboardCheck },
@@ -352,7 +353,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   }
 
-  const superAllowed = ["/owner-dashboard", "/companies", "/subscriptions", "/owner-finance", "/owner-reports", "/notifications", "/support"];
+  const superAllowed = ["/owner-dashboard", "/companies", "/subscriptions", "/owner-finance", "/owner-reports", "/desktop-licenses", "/notifications", "/support"];
   const projectsOnlyTenant = isProjectsOnlyTenant(me);
   const kind = projectsOnlyTenant ? "projects_only" : (me?.accountKind ?? "standard");
   const cashierTabs = CASHIER_TABS[kind] ? [...CASHIER_TABS[kind]!, ...(projectsOnlyTenant && me?.isTenantAdmin ? PROJECT_ADMIN_TABS : [])] : null;
