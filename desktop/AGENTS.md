@@ -1,3 +1,6 @@
 - Tauri v2 shell launches a bundled local stack sidecar (Postgres+PostgREST+GoTrue+app server); kept outside the web build so the cloud app is unaffected.
-- Desktop builds set VITE_DESKTOP=1; DesktopLicenseGate verifies Ed25519 keys (public key in desktop-license.ts, private in DESKTOP_LICENSE_PRIVATE_KEY) bound to the sidecar /__device fingerprint, and reports to /api/public/desktop-heartbeat when online — offline activation without trusting the client.
+- Desktop builds set VITE_DESKTOP=1; the sidecar persists and verifies signed device licenses, gates REST/storage, and reports online; the browser gate reflects that result — browser storage cannot activate the local services.
+- Only the private-network proxy listens on LAN; it injects the install-specific anon key and forwards same-origin /__backend requests to loopback services — mobile devices must never address their own localhost for company data.
+- local-compat.sql and local-storage.ts apply only to the isolated desktop stack; storage metadata operations impersonate verified callers under RLS — no hosted managed-schema changes.
+- Android releases require a persistent private owner keystore from CI secrets — rotating test keys cannot update installed customer apps.
 - lib.rs is shared by Windows (sidecar, cfg(desktop)) and Android (tauri.android.conf.json, mobile/ server picker for cloud or LAN) — one Tauri crate for both.

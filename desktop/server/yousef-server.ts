@@ -3,13 +3,18 @@
 //     --outfile desktop/src-tauri/binaries/yousef-server-x86_64-pc-windows-msvc.exe
 // Starts Postgres -> (first run: roles + schema) -> GoTrue -> PostgREST -> local gateway + app.
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { randomBytes, createHmac } from "node:crypto";
 import net from "node:net";
+import { verifyLicense } from "../../src/lib/desktop-license";
+import { localStorageApi } from "./local-storage";
+import { startLocalProxy } from "./local-proxy";
+import postgres from "postgres";
 
 const args = process.argv.slice(2);
-const dataDir = args[args.indexOf("--data-dir") + 1] || join(process.cwd(), "data");
+const dataIndex = args.indexOf("--data-dir");
+const dataDir = (dataIndex >= 0 ? args[dataIndex + 1] : undefined) || join(process.cwd(), "data");
 const stack = process.env.YOUSEF_STACK || join(dirname(process.execPath), "stack");
 const exe = (p: string) => join(stack, process.platform === "win32" ? `${p}.exe` : p);
 
@@ -28,12 +33,9 @@ function jwt(secret: string, role: string) {
 
 // Secrets persist per install so sessions survive restarts.
 mkdirSync(dataDir, { recursive: true });
-// stack/jwt-secret (written by CI) must match the anon key baked into the UI build.
 const secretsFile = join(dataDir, "secrets.json");
-const bakedJwt = join(stack, "jwt-secret");
 if (!existsSync(secretsFile)) {
-  const jwtSecret = existsSync(bakedJwt) ? readFileSync(bakedJwt, "utf8").trim() : randomBytes(32).toString("hex");
-  writeFileSync(secretsFile, JSON.stringify({ jwt: jwtSecret, db: randomBytes(16).toString("hex") }));
+  writeFileSync(secretsFile, JSON.stringify({ jwt: randomBytes(32).toString("hex"), db: randomBytes(16).toString("hex") }), { mode: 0o600 });
 }
 const secrets = JSON.parse(readFileSync(secretsFile, "utf8"));
 const ANON = jwt(secrets.jwt, "anon");
@@ -70,33 +72,53 @@ async function main() {
     log("initialising database");
     const pw = join(dataDir, ".pw"); writeFileSync(pw, secrets.db);
     const r = spawnSync(join(pgBin, "initdb"), ["-D", pgData, "-U", "postgres", "--pwfile", pw, "-E", "UTF8", "-A", "scram-sha-256"], { stdio: "inherit", windowsHide: true });
+    unlinkSync(pw);
     if (r.status !== 0) throw new Error("initdb failed");
   }
   run("postgres", join(pgBin, "postgres"), ["-D", pgData, "-p", String(PG_PORT), "-h", "127.0.0.1"]);
   await waitPort(PG_PORT);
 
-  if (firstRun) {
+  const schemaReady = join(dataDir, "schema.ready");
+  // Earlier installers did not write markers. Never restore the base dump over their books.
+  if (!firstRun && !existsSync(schemaReady)) {
+    const r = spawnSync(join(pgBin, process.platform === "win32" ? "psql.exe" : "psql"), ["-tAc", "SELECT to_regclass('public.documents') IS NOT NULL AND to_regclass('public.profiles') IS NOT NULL", DB_URL("postgres")], { encoding: "utf8", windowsHide: true });
+    if (r.status === 0 && r.stdout.trim() === "t") writeFileSync(schemaReady, "1");
+  }
+  if (!existsSync(schemaReady)) {
     log("creating roles and auth schema");
     const boot = join(dataDir, "bootstrap.sql");
     writeFileSync(boot, bootstrapSql(secrets.db));
     psql(boot);
+    unlinkSync(boot);
   }
 
   // GoTrue creates/migrates its own auth.* tables.
   run("gotrue", exe("gotrue"), [], {
     GOTRUE_API_HOST: "127.0.0.1", PORT: String(AUTH_PORT), API_EXTERNAL_URL: `http://127.0.0.1:${GATEWAY_PORT}/auth/v1`,
     GOTRUE_DB_DRIVER: "postgres", DATABASE_URL: DB_URL("supabase_auth_admin") + "?search_path=auth",
-    GOTRUE_DB_MIGRATIONS_PATH: stack,
-    GOTRUE_SITE_URL: `http://127.0.0.1:${APP_PORT}`, GOTRUE_JWT_SECRET: secrets.jwt, GOTRUE_JWT_EXP: "604800",
+    GOTRUE_DB_MIGRATIONS_PATH: join(stack, "migrations"),
+    GOTRUE_SITE_URL: "http://127.0.0.1:3001", GOTRUE_JWT_SECRET: secrets.jwt, GOTRUE_JWT_EXP: "604800",
     GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated", GOTRUE_JWT_AUD: "authenticated",
     GOTRUE_DISABLE_SIGNUP: "false", GOTRUE_EXTERNAL_EMAIL_ENABLED: "true", GOTRUE_MAILER_AUTOCONFIRM: "true",
   });
   await waitPort(AUTH_PORT);
 
-  if (firstRun) {
+  if (!existsSync(schemaReady)) {
+    psql(join(stack, "local-compat.sql"));
     const schema = join(stack, "hiwi-hub-schema-v2.sql");
-    if (existsSync(schema)) { log("applying application schema"); psql(schema); }
-    else log("WARNING: schema file missing in stack/");
+    if (!existsSync(schema)) throw new Error("schema file missing in stack/");
+    log("applying application schema");
+    // A failed restore rolls back fully; next launch can safely retry.
+    const transactional = join(dataDir, "restore.sql");
+    writeFileSync(transactional, "BEGIN;\n" + readFileSync(schema, "utf8") + "\nCOMMIT;\n");
+    psql(transactional);
+    unlinkSync(transactional);
+    writeFileSync(schemaReady, "1");
+  }
+  const migrations = join(stack, "local-migrations");
+  if (existsSync(migrations)) for (const file of readdirSync(migrations).filter(f => f.endsWith(".sql")).sort()) {
+    const marker = join(dataDir, `migration-${file}.done`);
+    if (!existsSync(marker)) { psql(join(migrations, file)); writeFileSync(marker, "1"); }
   }
 
   run("postgrest", exe("postgrest"), [], {
@@ -116,7 +138,9 @@ async function main() {
       PORT: String(APP_PORT), HOST: "127.0.0.1",
       SUPABASE_URL: `http://127.0.0.1:${GATEWAY_PORT}`, SUPABASE_PUBLISHABLE_KEY: ANON, SUPABASE_SERVICE_ROLE_KEY: SERVICE,
     });
-  } else log("WARNING: stack/app-cmd.json missing — app server not started");
+  } else throw new Error("stack/app-cmd.json missing");
+  await waitPort(APP_PORT);
+  startLocalProxy(ANON, APP_PORT, GATEWAY_PORT);
   log(`ready. anon key written to ${join(dataDir, "anon.key")}`);
   writeFileSync(join(dataDir, "anon.key"), ANON);
 }
@@ -142,13 +166,65 @@ function deviceId() {
 
 // Single URL like Supabase: /rest/v1 -> PostgREST, /auth/v1 -> GoTrue.
 function startGateway() {
+  const internalDb = postgres(DB_URL("postgres"), { max: 1 });
+  const storage = localStorageApi(DB_URL("postgres"), join(dataDir, "files"), secrets.jwt, `http://127.0.0.1:${AUTH_PORT}`);
+  const stateFile = join(dataDir, "license.json");
+  const readState = () => existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : { key: "", seen: 0, revoked: false };
+  const saveState = (state: object) => writeFileSync(stateFile, JSON.stringify(state), { mode: 0o600 });
+  const check = async () => {
+    const s = readState();
+    if (s.revoked) return { ok: false, reason: "revoked" };
+    const result = await verifyLicense(s.key, deviceId(), Date.now(), s.seen);
+    if (result.ok) saveState({ ...s, seen: Math.max(Date.now(), s.seen) });
+    return result;
+  };
+  let reporting = false;
+  const report = async () => {
+    if (reporting) return;
+    reporting = true;
+    try {
+      const s = readState();
+      const verified = await verifyLicense(s.key, deviceId(), Date.now(), s.seen);
+      if (!verified.ok && verified.reason !== "expired") return;
+      const r = await fetch("https://yousef-soft30.lovable.app/api/public/desktop-heartbeat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: deviceId(), license: s.key, version: "0.1.0", platform: "windows" }), signal: AbortSignal.timeout(10000) });
+      if (r.ok) {
+        const response = await r.json() as { revoked: boolean; serverTime?: number };
+        const current = readState();
+        if (current.key === s.key) saveState({ ...current, revoked: response.revoked, seen: Math.max(current.seen, response.serverTime || 0) });
+      }
+    } catch { /* Internet is optional; do not revoke on connection failure. */ }
+    finally { reporting = false; }
+  };
+  setInterval(() => void report(), 5 * 60_000);
+  void report();
   Bun.serve({
     hostname: "127.0.0.1", port: GATEWAY_PORT,
     async fetch(req) {
       const u = new URL(req.url);
-      const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*", "access-control-expose-headers": "*" };
+      const origin = req.headers.get("origin");
+      if (origin && origin !== `http://127.0.0.1:3000`) return new Response("Forbidden origin", { status: 403 });
+      const cors = { "access-control-allow-origin": "http://127.0.0.1:3000", "access-control-allow-headers": "authorization,apikey,content-type,x-client-info,x-upsert", "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS" };
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (u.pathname === "/__config") return Response.json({ anon: ANON });
+      if (u.pathname === "/__owner-ready") {
+        const [row] = await internalDb`select exists(select 1 from public.profiles where is_super_admin=true) as ready`;
+        return Response.json(row);
+      }
       if (u.pathname === "/__device") return Response.json({ device: deviceId() }, { headers: cors });
+      if (u.pathname === "/__license" && req.method === "GET") return Response.json(await check());
+      if (u.pathname === "/__license" && req.method === "POST") {
+        const body = await req.json() as { key?: string };
+        const s = readState();
+        const key = String(body.key || "").trim();
+        if (s.revoked && s.key === key) return Response.json({ ok: false, reason: "revoked" });
+        const result = await verifyLicense(key, deviceId(), Date.now(), s.seen);
+        if (result.ok) { saveState({ key, seen: Math.max(Date.now(), s.seen), revoked: false }); void report(); }
+        return Response.json(result);
+      }
+      if (u.pathname.startsWith("/rest/v1") || u.pathname.startsWith("/storage/v1")) {
+        if (!(await check()).ok) return Response.json({ message: "License required" }, { status: 403 });
+      }
+      if (u.pathname.startsWith("/storage/v1")) return storage(req);
       let target: string | null = null;
       if (u.pathname.startsWith("/rest/v1")) target = `http://127.0.0.1:${REST_PORT}${u.pathname.slice(8) || "/"}`;
       else if (u.pathname.startsWith("/auth/v1")) target = `http://127.0.0.1:${AUTH_PORT}${u.pathname.slice(8) || "/"}`;
@@ -185,6 +261,6 @@ ALTER ROLE postgres SET search_path = public, extensions;
 `;
 }
 
-function shutdown() { for (const c of children.reverse()) try { c.kill(); } catch {} process.exit(0); }
-process.on("SIGINT", shutdown); process.on("SIGTERM", shutdown);
-main().catch((e) => { log(String(e)); shutdown(); });
+function shutdown(code = 0) { for (const c of children.reverse()) try { c.kill(); } catch {} process.exit(code); }
+process.on("SIGINT", () => shutdown()); process.on("SIGTERM", () => shutdown());
+main().catch((e) => { log(String(e)); shutdown(1); });

@@ -17,35 +17,24 @@ jobs:
       NODE_ZIP: https://nodejs.org/dist/v20.18.0/node-v20.18.0-win-x64.zip
       AUTH_TAG: v2.164.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - uses: actions/setup-go@v5
-        with: { go-version: "1.23" }
+      - uses: actions/setup-go@v6
+        with: { go-version: "1.23", cache: false }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: desktop/src-tauri }
 
-      - name: Shared local JWT secret + anon key
-        run: |
-          SECRET=$(openssl rand -hex 32)
-          echo "::add-mask::$SECRET"
-          ANON=$(SECRET=$SECRET node -e '
-            const c=require("crypto");const b=x=>Buffer.from(x).toString("base64url");
-            const h=b(JSON.stringify({alg:"HS256",typ:"JWT"}));
-            const p=b(JSON.stringify({role:"anon",iss:"yousef-local",iat:1700000000,exp:4102444800}));
-            console.log(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"))')
-          mkdir -p desktop/stack
-          printf '%s' "$SECRET" > desktop/stack/jwt-secret
-          echo "ANON=$ANON" >> $GITHUB_ENV
-
       - name: Download PostgreSQL, PostgREST, Node
         run: |
+          mkdir -p desktop/stack
           cd desktop/stack
           curl -fsSL "$PG_ZIP" -o pg.zip && unzip -q pg.zip && rm pg.zip
           rm -rf pgsql/pgAdmin* pgsql/doc pgsql/symbols pgsql/StackBuilder
           curl -fsSL "$PGRST_ZIP" -o rest.zip && unzip -q rest.zip && rm rest.zip
           curl -fsSL "$NODE_ZIP" -o node.zip && unzip -q node.zip && rm node.zip && mv node-v*-win-x64 node
           cp ../stack-src/hiwi-hub-schema-v2.sql .
+          cp ../stack-src/local-compat.sql .
           echo '{"cmd":"./node/node.exe","args":["./app/server/index.mjs"]}' > app-cmd.json
 
       - name: Build GoTrue (sign-in service) for Windows
@@ -60,9 +49,11 @@ jobs:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
           VITE_SUPABASE_PROJECT_ID: local
           VITE_DESKTOP: "1"
+          VITE_SUPABASE_PUBLISHABLE_KEY: local-runtime
         run: |
-          bun install --frozen-lockfile || bun install
-          VITE_SUPABASE_PUBLISHABLE_KEY="$ANON" bun run build
+          bun install --frozen-lockfile
+          bun run build
+          test -f .output/server/index.mjs
           cp -r .output desktop/stack/app
 
       - name: Build launcher
@@ -75,9 +66,10 @@ jobs:
           cargo tauri icon ../../public/app-icon-512.png -o icons
           cargo tauri build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: YousefSoft-Setup
+          if-no-files-found: error
           path: |
             desktop/src-tauri/target/release/bundle/nsis/*.exe
             desktop/src-tauri/target/release/bundle/msi/*.msi

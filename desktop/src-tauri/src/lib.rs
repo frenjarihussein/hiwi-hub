@@ -5,7 +5,7 @@ mod desktop {
     use tauri::Manager;
     use tauri_plugin_shell::ShellExt;
 
-    const APP_ADDR: &str = "127.0.0.1:3000";
+    const APP_ADDR: &str = "127.0.0.1:3001";
     type Child = std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>;
 
     pub fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -14,6 +14,7 @@ mod desktop {
         let (_rx, child) = app
             .shell()
             .sidecar("yousef-server")?
+            .env("YOUSEF_STACK", app.path().resource_dir()?.join("stack"))
             .args(["--data-dir", &data_dir.to_string_lossy()])
             .spawn()?;
         app.manage::<Child>(std::sync::Mutex::new(Some(child)));
@@ -27,7 +28,7 @@ mod desktop {
                 }
                 thread::sleep(Duration::from_millis(500));
             }
-            let _ = window.eval("document.body.innerText='تعذّر تشغيل الخادم المحلي'");
+            let _ = window.eval("document.getElementById('status').textContent='تعذّر تشغيل الخادم المحلي. أغلق البرنامج وأعد فتحه. إذا تكرر الخطأ راجع سجل التشغيل.'");
         });
         Ok(())
     }

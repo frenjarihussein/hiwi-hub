@@ -6,13 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { PLAN_LABEL, verifyLicense, type LicenseCheck } from "@/lib/desktop-license";
 
 export const IS_DESKTOP = import.meta.env["VITE_DESKTOP"] === "1";
-const APP_VERSION = import.meta.env["VITE_APP_VERSION"] || "0.1.0";
-const HEARTBEAT = (import.meta.env["VITE_LICENSE_SERVER"] || "https://yousef-soft30.lovable.app") + "/api/public/desktop-heartbeat";
-const K = { key: "ys.license", seen: "ys.license.seen", revoked: "ys.license.revoked" };
+const baseUrl = () => window.location.origin + "/__backend";
 
 async function loadDevice(): Promise<string> {
-  const base = import.meta.env["VITE_SUPABASE_URL"] || "http://127.0.0.1:54321";
-  const r = await fetch(`${base}/__device`);
+  const r = await fetch(`${baseUrl()}/__device`, { signal: AbortSignal.timeout(10000) });
+  if (!r.ok) throw new Error("Device unavailable");
   return (await r.json()).device as string;
 }
 
@@ -47,32 +45,24 @@ export function DesktopLicenseGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<LicenseCheck | "loading" | "revoked">("loading");
   const [input, setInput] = useState("");
 
-  const evaluate = async (dev: string, key: string) => {
-    if (localStorage.getItem(K.revoked) === key) return setState("revoked");
-    const seen = Number(localStorage.getItem(K.seen) || 0);
-    const now = Date.now();
-    const res = await verifyLicense(key, dev, now, seen);
-    if (res.ok) localStorage.setItem(K.seen, String(Math.max(now, seen)));
-    setState(res);
-    if (res.ok) void heartbeat(dev, key);
-  };
-
-  const heartbeat = async (dev: string, key: string) => {
-    try {
-      const r = await fetch(HEARTBEAT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: dev, license: key, version: APP_VERSION, platform: "windows" }) });
-      if (r.ok && (await r.json()).revoked) { localStorage.setItem(K.revoked, key); setState("revoked"); }
-    } catch { /* offline: fine */ }
+  const evaluate = async () => {
+    const r = await fetch(`${baseUrl()}/__license`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error("License unavailable");
+    const result = await r.json() as LicenseCheck;
+    setState(!result.ok && result.reason === "revoked" ? "revoked" : result);
   };
 
   useEffect(() => {
     if (!IS_DESKTOP) return;
     loadDevice().then((d) => {
       setDevice(d);
-      const k = localStorage.getItem(K.key);
-      if (k) void evaluate(d, k); else setState({ ok: false, reason: "invalid" });
+      void evaluate().catch(() => setState({ ok: false, reason: "invalid" }));
     }).catch(() => setState({ ok: false, reason: "invalid" }));
-    const t = setInterval(() => { const k = localStorage.getItem(K.key); if (k && device) void heartbeat(device, k); }, 6 * 3600_000);
-    return () => clearInterval(t);
+    const recheck = () => { void evaluate().catch(() => setState({ ok: false, reason: "invalid" })); };
+    const t = setInterval(recheck, 60_000);
+    window.addEventListener("online", recheck);
+    window.addEventListener("focus", recheck);
+    return () => { clearInterval(t); window.removeEventListener("online", recheck); window.removeEventListener("focus", recheck); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,11 +71,15 @@ export function DesktopLicenseGate({ children }: { children: ReactNode }) {
 
   const activate = async () => {
     const k = input.trim();
-    const res = await verifyLicense(k, device, Date.now(), Number(localStorage.getItem(K.seen) || 0));
+    const res = await verifyLicense(k, device, Date.now());
     if (!res.ok) { toast.error(res.reason === "device" ? "هذا المفتاح لجهاز آخر" : res.reason === "expired" ? "انتهت صلاحية هذا المفتاح" : "مفتاح غير صالح"); return; }
-    localStorage.setItem(K.key, k);
-    localStorage.removeItem(K.revoked);
-    void evaluate(device, k);
+    try {
+      const r = await fetch(`${baseUrl()}/__license`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: k }) });
+      if (!r.ok) throw new Error("تعذر حفظ التفعيل؛ فعّل النسخة من جهاز ويندوز الرئيسي");
+      const result = await r.json() as LicenseCheck;
+      if (!result.ok) { setState(result.reason === "revoked" ? "revoked" : result); return; }
+      setState(result);
+    } catch (error) { toast.error(error instanceof Error ? error.message : "تعذر حفظ التفعيل"); }
   };
 
   const msg = state === "loading" ? "جارٍ التحقق من الترخيص…"
