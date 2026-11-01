@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Yousef Soft",
+  "version": "0.1.0",
+  "identifier": "com.yousefsoft.desktop",
+  "build": {
+    "frontendDist": "../loading"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Yousef Soft",
+        "width": 1366,
+        "height": 860,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "url": "index.html"
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "externalBin": ["binaries/yousef-server"],
+    "resources": ["../stack/**/*"]
+  }
+}
