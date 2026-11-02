@@ -6616,6 +6616,16 @@ export type Database = {
       purge_tenant: { Args: { _id: string }; Returns: undefined }
       recalc_wbs_progress: { Args: { _project: string }; Returns: number }
       receive_transfer: { Args: { _id: string }; Returns: string }
+      redeem_desktop_activation: {
+        Args: {
+          _code: string
+          _device: string
+          _expires: string
+          _id: string
+          _key: string
+        }
+        Returns: Json
+      }
       reopen_fiscal_period: { Args: never; Returns: undefined }
       restore_company_begin: { Args: { _id: string }; Returns: Json }
       restore_company_finish: {
