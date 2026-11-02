@@ -2,8 +2,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Copy, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { PLAN_LABEL, verifyLicense, type LicenseCheck } from "@/lib/desktop-license";
+import { Input } from "@/components/ui/input";
+import { PLAN_LABEL, type LicenseCheck } from "@/lib/desktop-license";
+import { ACTIVATION_CODE, normalizeCode } from "@/lib/desktop-activation";
 
 export const IS_DESKTOP = import.meta.env["VITE_DESKTOP"] === "1";
 const baseUrl = () => window.location.origin + "/__backend";
@@ -44,6 +45,8 @@ export function DesktopLicenseGate({ children }: { children: ReactNode }) {
   const [device, setDevice] = useState("");
   const [state, setState] = useState<LicenseCheck | "loading" | "revoked">("loading");
   const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const evaluate = async () => {
     const r = await fetch(`${baseUrl()}/__license`, { signal: AbortSignal.timeout(10000) });
@@ -70,16 +73,22 @@ export function DesktopLicenseGate({ children }: { children: ReactNode }) {
   if (state !== "loading" && state !== "revoked" && state.ok) return <>{children}</>;
 
   const activate = async () => {
-    const k = input.trim();
-    const res = await verifyLicense(k, device, Date.now());
-    if (!res.ok) { toast.error(res.reason === "device" ? "هذا المفتاح لجهاز آخر" : res.reason === "expired" ? "انتهت صلاحية هذا المفتاح" : "مفتاح غير صالح"); return; }
+    if (busy) return;
+    const code = normalizeCode(input);
+    if (!ACTIVATION_CODE.test(code)) { setError("كود التنشيط غير صحيح"); return; }
+    setBusy(true); setError("");
     try {
-      const r = await fetch(`${baseUrl()}/__license`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: k }) });
-      if (!r.ok) throw new Error("تعذر حفظ التفعيل؛ فعّل النسخة من جهاز ويندوز الرئيسي");
-      const result = await r.json() as LicenseCheck;
-      if (!result.ok) { setState(result.reason === "revoked" ? "revoked" : result); return; }
-      setState(result);
-    } catch (error) { toast.error(error instanceof Error ? error.message : "تعذر حفظ التفعيل"); }
+      const r = await fetch(`${baseUrl()}/__activate`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }), signal: AbortSignal.timeout(25000) });
+      if (!r.ok) throw new Error("فعّل النسخة من جهاز ويندوز الرئيسي");
+      const result = await r.json() as { ok: boolean; reason?: string };
+      if (!result.ok) {
+        const messages: Record<string, string> = { offline: "التفعيل الأول يحتاج الإنترنت. تحقق من الاتصال ثم أعد المحاولة.", used: "هذا الكود مستخدم على جهاز آخر", revoked: "تم إيقاف هذا الكود", not_found: "كود التنشيط غير موجود", invalid: "كود التنشيط غير صحيح", unavailable: "خدمة التفعيل غير متاحة حالياً. أعد المحاولة.", expired: "انتهت صلاحية هذا الترخيص", clock: "صحّح تاريخ الجهاز والوقت" };
+        throw new Error(messages[result.reason ?? ""] ?? "تعذر التفعيل. أعد المحاولة.");
+      }
+      await evaluate();
+      toast.success("تم تفعيل الجهاز");
+    } catch (error) { setError(error instanceof Error ? error.message : "تعذر التفعيل"); }
+    finally { setBusy(false); }
   };
 
   const msg = state === "loading" ? "جارٍ التحقق من الترخيص…"
@@ -87,11 +96,11 @@ export function DesktopLicenseGate({ children }: { children: ReactNode }) {
     : state.reason === "expired" ? `انتهى الترخيص (${PLAN_LABEL[state.payload?.p ?? ""] ?? ""}). أدخل مفتاح تجديد.`
     : state.reason === "clock" ? "تاريخ الجهاز غير صحيح. صحّح التاريخ والوقت ثم أعد التشغيل."
     : state.reason === "device" ? "المفتاح المحفوظ لا يخص هذا الجهاز."
-    : "هذه النسخة غير مفعّلة. أرسل رمز الجهاز للمورد لتحصل على مفتاح التفعيل.";
+    : "هذه النسخة غير مفعّلة. أدخل كود التنشيط المرسل من المورد. يلزم الإنترنت للتفعيل الأول فقط.";
 
   return (
     <div dir="rtl" className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-lg space-y-5 rounded-xl border bg-card p-6 shadow-sm">
+      <div className="w-full max-w-lg space-y-5 rounded-lg border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
           <ShieldCheck className="h-8 w-8 text-primary" />
           <div>
@@ -109,10 +118,11 @@ export function DesktopLicenseGate({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-sm font-medium text-foreground">مفتاح التفعيل</div>
-              <Textarea dir="ltr" rows={4} className="font-mono text-xs" value={input} onChange={(e) => setInput(e.target.value)} placeholder="YSL1...." />
+              <label htmlFor="activation-code" className="text-sm font-medium text-foreground">كود التنشيط</label>
+              <Input id="activation-code" dir="ltr" className="font-mono text-sm" value={input} disabled={busy} onChange={(e) => setInput(e.target.value)} placeholder="YSA-XXXXX-XXXXX-XXXXX-XXXXX" autoComplete="off" maxLength={80} />
             </div>
-            <Button className="w-full" onClick={activate} disabled={!input.trim() || !device}><KeyRound className="ml-2 h-4 w-4" />تفعيل</Button>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            <Button className="w-full" onClick={activate} disabled={busy || !input.trim() || !device}><KeyRound className="ml-2 h-4 w-4" />{busy ? "جارٍ التحقق…" : "تفعيل عبر الإنترنت"}</Button>
           </>
         )}
       </div>
