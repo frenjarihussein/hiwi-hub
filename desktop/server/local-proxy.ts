@@ -1,5 +1,6 @@
 // The only LAN listener. Database/Auth/REST remain loopback-only.
 import { networkInterfaces } from "node:os";
+import { requiresMainPc } from "./proxy-access";
 
 export function startLocalProxy(anon: string, appPort: number, gatewayPort: number) {
   const hosts = new Set(["127.0.0.1", "localhost", ...Object.values(networkInterfaces()).flatMap(list => (list || []).filter(n => n.family === "IPv4").map(n => n.address))]);
@@ -21,7 +22,7 @@ export function startLocalProxy(anon: string, appPort: number, gatewayPort: numb
       const backend = url.pathname.startsWith("/__backend/");
       const path = backend ? url.pathname.slice("/__backend".length) : url.pathname;
       if (backend && path === "/__config") return new Response("Not found", { status: 404 });
-      if (!loopback && backend && path === "/__license" && request.method !== "GET") return new Response("Activate on the main PC", { status: 403 });
+      if (!loopback && backend && requiresMainPc(path, request.method)) return new Response("Activate on the main PC", { status: 403 });
       const headers = new Headers(request.headers);
       headers.delete("host");
       headers.delete("x-forwarded-for");

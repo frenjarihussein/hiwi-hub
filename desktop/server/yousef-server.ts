@@ -12,6 +12,7 @@ import { verifyLicense } from "../../src/lib/desktop-license";
 import { localStorageApi } from "./local-storage";
 import { startLocalProxy } from "./local-proxy";
 import postgres from "postgres";
+import { STARTUP_STEPS as STEPS, startupSnapshot } from "./progress";
 
 const args = process.argv.slice(2);
 const dataIndex = args.indexOf("--data-dir");
@@ -73,30 +74,13 @@ async function psql(sqlFile: string) {
 
 // First-run progress for the loading window (http://127.0.0.1:54319). Each step has an expected
 // duration; progress inside a step creeps toward its end so the bar never jumps backwards.
-const STEPS = [
-  { id: "init", label: "تهيئة محرك قاعدة البيانات", sec: 15 },
-  { id: "start", label: "تشغيل قاعدة البيانات", sec: 5 },
-  { id: "roles", label: "إنشاء الصلاحيات والأمان", sec: 3 },
-  { id: "auth", label: "تشغيل خدمة الدخول", sec: 6 },
-  { id: "schema", label: "بناء الجداول والقيود المحاسبية", sec: 60 },
-  { id: "services", label: "تشغيل الخدمات المحلية", sec: 6 },
-  { id: "app", label: "تشغيل واجهة البرنامج", sec: 10 },
-] as const;
 const progress = { step: 0, stepStart: Date.now(), skip: new Set<string>(), done: false, error: "", started: Date.now() };
 function phase(id: (typeof STEPS)[number]["id"]) {
   progress.step = STEPS.findIndex((s) => s.id === id); progress.stepStart = Date.now();
   log(`phase ${id}`);
 }
 function progressSnapshot() {
-  const active = STEPS.filter((s) => !progress.skip.has(s.id));
-  const total = active.reduce((t, s) => t + s.sec, 0) || 1;
-  const cur = STEPS[progress.step]!;
-  let before = 0; for (const s of active) { if (s.id === cur.id) break; before += s.sec; }
-  const elapsed = (Date.now() - progress.stepStart) / 1000;
-  const inStep = cur.sec * (1 - Math.exp(-elapsed / cur.sec)) * 0.95; // asymptotic, never completes alone
-  const pct = progress.done ? 100 : Math.min(99, Math.round(((before + inStep) / total) * 100));
-  const remaining = progress.done ? 0 : Math.max(1, Math.round(total - before - Math.max(inStep, Math.min(elapsed, cur.sec))) + Math.max(0, Math.round(elapsed - cur.sec) > 0 ? 3 : 0));
-  return { pct, label: cur.label, step: active.findIndex((s) => s.id === cur.id) + 1, steps: active.length, remaining, done: progress.done, error: progress.error, elapsed: Math.round((Date.now() - progress.started) / 1000) };
+  return startupSnapshot(progress);
 }
 try {
   Bun.serve({ hostname: "127.0.0.1", port: 54319, fetch: () => Response.json(progressSnapshot(), { headers: { "access-control-allow-origin": "*", "cache-control": "no-store" } }) });
@@ -214,7 +198,7 @@ function deviceSpecs() {
   let osName = `${os.type()} ${os.release()}`;
   try {
     const r = spawnSync("reg", ["query", "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "/v", "ProductName"], { encoding: "utf8", windowsHide: true });
-    const m = r.stdout?.match(/ProductName\s+REG_SZ\s+(.+)/); if (m) osName = `${m[1]!.trim()} (${os.release()})`;
+    const m = r.stdout?.match(/ProductName\s+REG_SZ\s+(.+)/); if (m?.[1]) osName = `${m[1].trim()} (${os.release()})`;
   } catch {}
   let user = ""; try { user = os.userInfo().username; } catch {}
   const cpus = os.cpus();
