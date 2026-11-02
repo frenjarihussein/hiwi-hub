@@ -1,7 +1,28 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-<head><meta charset="utf-8"><title>Yousef Soft</title>
-<style>body{margin:0;height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0}</style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>تجهيز يوسف سوفت</title>
+<style>
+:root{--background:#17191d;--foreground:#f3f4f6;--muted:#aeb6c2;--primary:#48bda4;--track:#343b44;--danger:#f38a8a}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:var(--background);color:var(--foreground);padding:28px}main{width:min(100%,480px)}h1{margin:0 0 28px;font-size:28px}#status{font-size:18px;margin-bottom:18px}progress{appearance:none;width:100%;height:12px;border:0;border-radius:6px;overflow:hidden;background:var(--track)}progress::-webkit-progress-bar{background:var(--track)}progress::-webkit-progress-value{background:var(--primary)}.meta{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font-size:14px;color:var(--muted)}#error{color:var(--danger);overflow-wrap:anywhere}p{line-height:1.7}
+</style>
 </head>
-<body><div id="status">جاري تشغيل قاعدة البيانات المحلية…</div></body>
+<body><main><h1>يوسف سوفت</h1><div id="status" role="status">جارٍ بدء التجهيز…</div><progress id="progress" max="100" aria-label="تقدم مراحل التجهيز"></progress><div class="meta"><span id="stage">الاتصال بالمشغّل المحلي</span><span id="percent">—</span></div><p id="remaining">جارٍ تقدير الوقت المتبقي…</p><p id="error" role="alert" hidden></p></main>
+<script>
+let stopped=false,failures=0;
+async function poll(){
+  try{
+    const r=await fetch('http://127.0.0.1:54319',{cache:'no-store',signal:AbortSignal.timeout(3000)});
+    if(!r.ok)throw new Error('unavailable');
+    const s=await r.json();failures=0;
+    document.getElementById('status').textContent=s.label;
+    document.getElementById('progress').value=s.pct;
+    document.getElementById('percent').textContent=s.pct+'%';
+    document.getElementById('stage').textContent='المرحلة '+s.step+' من '+s.steps;
+    document.getElementById('remaining').textContent=s.done?'اكتمل التجهيز':s.remaining==null?'هذه المرحلة تستغرق أكثر من المتوقع؛ التجهيز مستمر.':'الوقت المتبقي المتوقع: '+(s.remaining>=60?Math.ceil(s.remaining/60)+' دقيقة':s.remaining+' ثانية');
+    const error=document.getElementById('error');error.hidden=!s.error;error.textContent=s.error?'تعذّر التجهيز. أغلق البرنامج وأعد تشغيله. التفاصيل: '+s.error:'';
+    stopped=!!s.done||!!s.error;
+  }catch{failures++;if(failures>10){document.getElementById('status').textContent='لم يصل رد من المشغّل المحلي';document.getElementById('remaining').textContent='إذا استمرت هذه الرسالة، أغلق البرنامج وأعد تشغيله.';document.getElementById('progress').removeAttribute('value');}}
+  if(!stopped)setTimeout(poll,750);
+}poll();
+</script></body>
 </html>

@@ -260,6 +260,13 @@
       "when": 1793547432030,
       "tag": "0036_desktop_activation_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793607041185,
+      "tag": "0037_atomic_desktop_activation",
+      "breakpoints": true
     }
   ]
 }

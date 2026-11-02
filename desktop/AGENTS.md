@@ -4,3 +4,6 @@
 - local-compat.sql and local-storage.ts apply only to the isolated desktop stack; storage metadata operations impersonate verified callers under RLS — no hosted managed-schema changes.
 - Android releases require a persistent private owner keystore from CI secrets — rotating test keys cannot update installed customer apps.
 - lib.rs is shared by Windows (sidecar, cfg(desktop)) and Android (tauri.android.conf.json, mobile/ server picker for cloud or LAN) — one Tauri crate for both.
+- Startup percentages count completed stages; duration estimates disappear when a stage overruns — do not simulate SQL progress with elapsed timers.
+- Android CI installs app icons after native initialization and applies system/keyboard insets to the native content view — cloud and LAN navigation retain unobscured controls.
+- Activation mutations are restricted to the main PC by the LAN proxy — phones cannot bind or replace installation licenses.

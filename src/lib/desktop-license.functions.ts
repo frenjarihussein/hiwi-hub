@@ -1,21 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { b64u, encodePayload, formatKey, planExpiry, type LicensePayload } from "@/lib/desktop-license";
+import { planExpiry } from "@/lib/desktop-license";
 import { clampBatch, newActivationCode } from "@/lib/desktop-activation";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertSuper(supabase: any) {
   const { data } = await supabase.rpc("is_super_admin");
   if (!data) throw new Error("هذه العملية لمدير النظام فقط");
-}
-
-export async function signLicense(p: LicensePayload) {
-  const pk = process.env["DESKTOP_LICENSE_PRIVATE_KEY"];
-  if (!pk) throw new Error("مفتاح التوقيع غير مضبوط على الخادم");
-  const key = await crypto.subtle.importKey("pkcs8", b64u.dec(pk.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")), { name: "Ed25519" }, false, ["sign"]);
-  const body = encodePayload(p);
-  const sig = new Uint8Array(await crypto.subtle.sign("Ed25519", key, new TextEncoder().encode(body)));
-  return formatKey(`${body}.${b64u.enc(sig)}`);
 }
 
 const DEVICE = /^YS-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/;
@@ -34,6 +25,7 @@ export const issueDesktopLicense = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertSuper(supabase);
+    const { signLicense } = await import("@/lib/desktop-signing.server");
     const id = crypto.randomUUID();
     const now = Date.now();
     const e = planExpiry(data.plan, now, data.days);
@@ -58,7 +50,7 @@ export const generateActivationCodes = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertSuper(supabase);
-    const batch = `B-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`;
+    const batch = `B-${crypto.randomUUID()}`;
     const rows = Array.from({ length: data.count }, () => ({ code: newActivationCode(), batch, customer: data.customer, plan: data.plan, days: data.days, created_by: userId }));
     const { error } = await supabase.from("desktop_activation_codes").insert(rows);
     if (error) throw new Error(error.message);

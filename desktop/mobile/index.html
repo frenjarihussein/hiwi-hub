@@ -2,20 +2,24 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Yousef Soft</title>
 <style>
-  body{margin:0;font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center}
-  .card{width:min(92vw,420px);background:#1e293b;border-radius:16px;padding:24px}
-  h1{margin:0 0 6px;font-size:22px} p{margin:0 0 18px;color:#94a3b8;font-size:14px}
-  button{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;margin-top:10px;background:#f59e0b;color:#111;font-weight:700}
-  button.alt{background:#334155;color:#e2e8f0}
-  input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:16px;direction:ltr;margin-top:10px}
+  :root{--background:#0f172a;--foreground:#e2e8f0;--card:#1e293b;--muted:#94a3b8;--primary:#f59e0b;--primary-foreground:#111;--secondary:#334155;--border:#475569}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,sans-serif;background:var(--background);color:var(--foreground);display:flex;min-height:100dvh;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))}
+  .card{width:min(100%,420px);background:var(--card);border-radius:8px;padding:24px}
+  .logo{display:block;width:88px;height:88px;object-fit:contain;margin:0 auto 20px}
+  h1{margin:0 0 6px;font-size:22px} p{margin:0 0 18px;color:var(--muted);font-size:14px}
+  button{width:100%;padding:14px;border:0;border-radius:8px;font-size:16px;margin-top:10px;background:var(--primary);color:var(--primary-foreground);font-weight:700;overflow-wrap:anywhere}
+  button.alt{background:var(--secondary);color:var(--foreground)}
+  input{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);font-size:16px;direction:ltr;margin-top:10px}
   #lan{display:none}
 </style>
 </head>
 <body>
 <div class="card">
+  <img class="logo" src="logo.png" alt="شعار يوسف سوفت" />
   <h1>يوسف سوفت</h1>
   <p>الاتصال</p>
   <button class="alt" id="saved" hidden>آخر خادم</button>
